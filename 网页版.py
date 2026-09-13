@@ -100,4 +100,4 @@ if uploaded_file is not None:
 st.divider()
 st.subheader("📝 反馈")
 st.write("如果你在使用中遇到问题，或者有建议，欢迎填写反馈：")
-st.markdown("[点这里填写反馈](在这里放你的反馈链接)")
+st.markdown("[点这里填写反馈](https://v.wjx.cn/vm/eo23cWG.aspx)")
