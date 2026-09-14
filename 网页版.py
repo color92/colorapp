@@ -45,48 +45,50 @@ def judge_temperature(r, g, b):
 uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png", "bmp"])
 
 if uploaded_file is not None:
-    img = Image.open(uploaded_file)
+    original_img = Image.open(uploaded_file)
     
-    # 压缩图片到400像素宽
-    if max(img.size) > 400:
-        ratio = 400 / max(img.size)
-        img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
+    # ★★★ 关键修复1：先把图片压缩好，再用压缩后的图去接收点击，坐标100%精准！★★★
+    if original_img.width > 400:
+        ratio = 400 / original_img.width
+        new_height = int(original_img.height * ratio)
+        img_resized = original_img.resize((400, new_height), Image.Resampling.LANCZOS)
+    else:
+        img_resized = original_img
 
     st.write("👇 点击图片上的位置取色：")
-    value = streamlit_image_coordinates(img, key="click", width=400)
+    # 使用压缩后的图进行交互
+    value = streamlit_image_coordinates(img_resized, key="click", width=400)
 
     if value is not None:
         x, y = value["x"], value["y"]
         
         # 防崩溃保护
-        x = max(0, min(x, img.width - 1))
-        y = max(0, min(y, img.height - 1))
+        x = max(0, min(x, img_resized.width - 1))
+        y = max(0, min(y, img_resized.height - 1))
         
-        r, g, b = img.getpixel((x, y))[:3]
+        # 在压缩后的图上取色，100%精准
+        r, g, b = img_resized.getpixel((x, y))[:3]
         result = judge_temperature(r, g, b)
 
-        # ★★★ 终极改动：截取一小块放大，和答案并排显示 ★★★
         st.markdown("---")
         
-        # 1. 截取小图并画红点
-        crop_size = 40  # 截取周围 40 像素的区域
+        # ★★★ 关键修复2：裁剪放大，带红点的小图 + 旁边大字号答案 ★★★
+        crop_size = 40
         left = max(0, x - crop_size)
         top = max(0, y - crop_size)
-        right = min(img.width, x + crop_size)
-        bottom = min(img.height, y + crop_size)
+        right = min(img_resized.width, x + crop_size)
+        bottom = min(img_resized.height, y + crop_size)
         
-        crop_img = img.crop((left, top, right, bottom))
-        crop_img = crop_img.resize((100, 100), Image.Resampling.LANCZOS) # 放大到 100x100 的小方块
+        crop_img = img_resized.crop((left, top, right, bottom))
+        crop_img = crop_img.resize((100, 100), Image.Resampling.LANCZOS)
         
         draw = ImageDraw.Draw(crop_img)
         center_x = x - left
         center_y = y - top
-        # 画十字准星
         draw.line((center_x, 0, center_x, 100), fill="red", width=2)
         draw.line((0, center_y, 100, center_y), fill="red", width=2)
         draw.ellipse((center_x-5, center_y-5, center_x+5, center_y+5), outline="red", width=2)
 
-        # 2. 左右分栏：左边放小图，右边放大字号结果
         col1, col2 = st.columns([1, 3])
         with col1:
             st.image(crop_img, caption="📍 点此")
