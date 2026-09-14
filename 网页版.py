@@ -7,7 +7,7 @@ st.set_page_config(page_title="冷暖调判断器", page_icon="🎨")
 st.title("🎨 冷暖调判断器")
 st.write("上传一张照片，点击图片上的位置，立刻判断颜色的冷暖调。")
 
-st.warning("💡 重要提示：点击图片上的位置后，结果会在图片的正下方显示，请向下滑动查看！")
+st.warning("💡 重要提示：点击图片后，结果会在图片正下方显示，请向下滑动查看！")
 
 def judge_temperature(r, g, b):
     h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
@@ -47,7 +47,7 @@ uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
     
-    # 压缩图片（改回400，保证清晰度和点击精度）
+    # 压缩图片到400像素宽
     if max(img.size) > 400:
         ratio = 400 / max(img.size)
         img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
@@ -58,29 +58,47 @@ if uploaded_file is not None:
     if value is not None:
         x, y = value["x"], value["y"]
         
+        # 防崩溃保护
         x = max(0, min(x, img.width - 1))
         y = max(0, min(y, img.height - 1))
         
         r, g, b = img.getpixel((x, y))[:3]
         result = judge_temperature(r, g, b)
 
-        marked_img = img.copy()
-        draw = ImageDraw.Draw(marked_img)
-        draw.ellipse((x-6, y-6, x+6, y+6), outline="red", width=3)
-        draw.line((x-10, y, x+10, y), fill="red", width=2)
-        draw.line((x, y-10, x, y+10), fill="red", width=2)
-        
-        st.image(marked_img, caption="📍 您点击的位置", width=400)
-
+        # ★★★ 终极改动：截取一小块放大，和答案并排显示 ★★★
         st.markdown("---")
-        st.markdown(
-            f"<h2 style='text-align: center; color: #d32f2f; margin-bottom: 0;'>🎯 判定结果：{result}</h2>", 
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f"<p style='text-align: center; color: #666;'>坐标：({x}, {y})  |  RGB：({r}, {g}, {b})</p >", 
-            unsafe_allow_html=True
-        )
+        
+        # 1. 截取小图并画红点
+        crop_size = 40  # 截取周围 40 像素的区域
+        left = max(0, x - crop_size)
+        top = max(0, y - crop_size)
+        right = min(img.width, x + crop_size)
+        bottom = min(img.height, y + crop_size)
+        
+        crop_img = img.crop((left, top, right, bottom))
+        crop_img = crop_img.resize((100, 100), Image.Resampling.LANCZOS) # 放大到 100x100 的小方块
+        
+        draw = ImageDraw.Draw(crop_img)
+        center_x = x - left
+        center_y = y - top
+        # 画十字准星
+        draw.line((center_x, 0, center_x, 100), fill="red", width=2)
+        draw.line((0, center_y, 100, center_y), fill="red", width=2)
+        draw.ellipse((center_x-5, center_y-5, center_x+5, center_y+5), outline="red", width=2)
+
+        # 2. 左右分栏：左边放小图，右边放大字号结果
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.image(crop_img, caption="📍 点此")
+        with col2:
+            st.markdown(
+                f"<h2 style='text-align: center; color: #d32f2f; margin-bottom: 0;'>🎯 结果：{result}</h2>", 
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                f"<p style='text-align: center; color: #666;'>坐标：({x}, {y})  |  RGB：({r}, {g}, {b})</p >", 
+                unsafe_allow_html=True
+            )
 
 st.divider()
 st.write("📧 如有建议，请联系：**2037076846@qq.com**")
