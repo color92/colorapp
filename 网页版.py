@@ -56,6 +56,8 @@ if uploaded_file is not None:
 
     if value is not None:
         x, y = value["x"], value["y"]
+        x = max(0, min(x, img.width - 1))
+y = max(0, min(y, img.height - 1))
         r, g, b = img.getpixel((x, y))[:3]
         result = judge_temperature(r, g, b)
 
