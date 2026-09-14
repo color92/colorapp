@@ -45,7 +45,7 @@ uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
     
-    # ★★★ 图片压缩（解决大图卡顿）★★★
+    # 图片压缩（解决大图卡顿）
     if max(img.size) > 800:
         ratio = 800 / max(img.size)
         img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
@@ -53,40 +53,41 @@ if uploaded_file is not None:
     st.write("👇 点击图片上的位置取色：")
     value = streamlit_image_coordinates(img, key="click")
 
-    # ★★★ 侧边栏 + 放大镜功能 ★★★
-    with st.sidebar:
-        st.header("🎯 取色结果")
-        if value is not None:
-            x, y = value["x"], value["y"]
-            r, g, b = img.getpixel((x, y))[:3]
-            result = judge_temperature(r, g, b)
+    # ★★★ 关键改动：结果直接显示在主页面下方！不要侧边栏！★★★
+    if value is not None:
+        x, y = value["x"], value["y"]
+        r, g, b = img.getpixel((x, y))[:3]
+        result = judge_temperature(r, g, b)
 
-            # 画放大镜（带红色准星）
-            crop_size = 80
-            left = max(0, x - crop_size)
-            top = max(0, y - crop_size)
-            right = min(img.size[0], x + crop_size)
-            bottom = min(img.size[1], y + crop_size)
-            crop_img = img.crop((left, top, right, bottom))
-            crop_img = crop_img.resize((160, 160), Image.Resampling.LANCZOS)
-            draw = ImageDraw.Draw(crop_img)
-            center_x = x - left
-            center_y = y - top
-            draw.line((center_x, 0, center_x, 160), fill="red", width=2)
-            draw.line((0, center_y, 160, center_y), fill="red", width=2)
-            draw.ellipse((center_x-5, center_y-5, center_x+5, center_y+5), outline="red", width=2)
+        # 画放大镜（带红色准星）
+        crop_size = 80
+        left = max(0, x - crop_size)
+        top = max(0, y - crop_size)
+        right = min(img.size[0], x + crop_size)
+        bottom = min(img.size[1], y + crop_size)
+        crop_img = img.crop((left, top, right, bottom))
+        crop_img = crop_img.resize((160, 160), Image.Resampling.LANCZOS)
+        draw = ImageDraw.Draw(crop_img)
+        center_x = x - left
+        center_y = y - top
+        draw.line((center_x, 0, center_x, 160), fill="red", width=2)
+        draw.line((0, center_y, 160, center_y), fill="red", width=2)
+        draw.ellipse((center_x-5, center_y-5, center_x+5, center_y+5), outline="red", width=2)
 
-            st.image(crop_img, caption="📍 您点击的位置（已放大）")
+        # 用两列显示：左边放大镜，右边结果（手机端会自动上下排列）
+        st.markdown("---")
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.image(crop_img, caption="📍 点击位置")
+        with col2:
+            st.markdown(f"### 🎯 取色结果")
             st.markdown(f"**坐标：** ({x}, {y})")
             st.markdown(f"**RGB：** ({r}, {g}, {b})")
             st.markdown(f"**判断结果：** {result}")
             st.markdown(f'<div style="width:60px;height:60px;background:rgb({r},{g},{b});border:2px solid #333;border-radius:8px;"></div>', unsafe_allow_html=True)
-        else:
-            st.info("👈 请在图片上点击一个位置")
+    else:
+        st.info("👈 请在图片上点击一个位置")
 
 st.divider()
-
-# ★★★ 反馈邮箱 ★★★
 st.write("📧 如有建议，请联系：**2037076846@qq.com**")
-
 st.caption("📌 免责声明：本工具仅提供色彩美学参考。您的照片仅用于实时像素计算，服务器不会保存您的原图。")
