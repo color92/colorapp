@@ -90,4 +90,4 @@ if uploaded_file is not None:
             st.markdown(f"**判断结果：** {result}")
             st.markdown(f'<div style="width:60px;height:60px;background:rgb({r},{g},{b});border:2px solid #333;border-radius:8px;"></div>', unsafe_allow_html=True)
         else:
-            st.info("👈 请在图片上点击一个位置")作为医疗或专业诊断依据.您的照片仅用于实时像素计算,服务器不会保存您的原图.")
+            st.info("👈 请在图片上点击一个位置")
