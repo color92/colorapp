@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw
 import colorsys
 from streamlit_image_coordinates import streamlit_image_coordinates
 
@@ -44,23 +44,50 @@ uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png
 
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
-    
-    # ★★★ 图片压缩核心代码：解决长时间加载不出来的问题！★★★
+
+    # 图片压缩
     if max(img.size) > 800:
         ratio = 800 / max(img.size)
         img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
-    
+
     st.write("👇 点击图片上的位置取色：")
     value = streamlit_image_coordinates(img, key="click")
 
-    if value is not None:
-        x, y = value["x"], value["y"]
-        r, g, b = img.getpixel((x, y))[:3]
-        result = judge_temperature(r, g, b)
-        st.markdown(f"**坐标：** ({x}, {y})  |  **RGB：** ({r}, {g}, {b})")
-        st.markdown(f"**判断结果：** {result}")
-        st.markdown(f'<div style="width:60px;height:60px;background:rgb({r},{g},{b});border:2px solid #333;border-radius:8px;"></div>', unsafe_allow_html=True)
+    # ★★★ 侧边栏：局部放大图 + 结果 ★★★
+    with st.sidebar:
+        st.header("🎯 取色结果")
+        if value is not None:
+            x, y = value["x"], value["y"]
+            r, g, b = img.getpixel((x, y))[:3]
+            result = judge_temperature(r, g, b)
 
-st.divider()
-st.write("📧 如有建议或需要人工深度解读，请联系：2037076846@qq.com")
-st.caption("📌 免责声明：本工具仅提供色彩美学参考，不作为医疗或专业诊断依据。您的照片仅用于实时像素计算，服务器不会保存您的原图。")
+            # 1. 生成局部放大图
+            crop_size = 80  # 截取周围 80 像素
+            left = max(0, x - crop_size)
+            top = max(0, y - crop_size)
+            right = min(img.size[0], x + crop_size)
+            bottom = min(img.size[1], y + crop_size)
+
+            crop_img = img.crop((left, top, right, bottom))
+            crop_img = crop_img.resize((160, 160), Image.Resampling.LANCZOS)
+
+            # 2. 在放大图上画红点准星
+            draw = ImageDraw.Draw(crop_img)
+            center_x = x - left
+            center_y = y - top
+            # 画十字线
+            draw.line((center_x, 0, center_x, 160), fill="red", width=2)
+            draw.line((0, center_y, 160, center_y), fill="red", width=2)
+            # 画个小圆圈
+            draw.ellipse((center_x-5, center_y-5, center_x+5, center_y+5), outline="red", width=2)
+
+            # 3. 展示放大图
+            st.image(crop_img, caption="📍 您点击的位置（已放大）")
+
+            # 4. 展示结果
+            st.markdown(f"**坐标：** ({x}, {y})")
+            st.markdown(f"**RGB：** ({r}, {g}, {b})")
+            st.markdown(f"**判断结果：** {result}")
+            st.markdown(f'<div style="width:60px;height:60px;background:rgb({r},{g},{b});border:2px solid #333;border-radius:8px;"></div>', unsafe_allow_html=True)
+        else:
+            st.info("👈 请在图片上点击一个位置")作为医疗或专业诊断依据。您的照片仅用于实时像素计算，服务器不会保存您的原图。")
