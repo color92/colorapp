@@ -5,7 +5,7 @@ from streamlit_image_coordinates import streamlit_image_coordinates
 
 st.set_page_config(page_title="冷暖调判断器", page_icon="🎨")
 st.title("🎨 冷暖调判断器")
-st.write("上传一张照片，点击图片上的位置，结果会立刻弹出。")
+st.write("上传一张照片，点击图片上的位置，立刻判断颜色的冷暖调。")
 
 def judge_temperature(r, g, b):
     h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
@@ -45,32 +45,34 @@ uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
     
-    # ★★★ 压缩到 400 像素宽，保证在手机屏幕内不用滚动就能看到下面 ★★★
+    # 压缩图片
     if max(img.size) > 400:
         ratio = 400 / max(img.size)
         img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
 
     st.write("👇 点击图片上的位置取色：")
-    # ★★★ 设定 width=400，让图片小巧一点，下方结果就不会跑出屏幕 ★★★
     value = streamlit_image_coordinates(img, key="click", width=400)
 
     if value is not None:
         x, y = value["x"], value["y"]
+        
+        # ★★★ 这里就是防止边缘崩溃的防护代码 ★★★
         x = max(0, min(x, img.width - 1))
-y = max(0, min(y, img.height - 1))
-r,g,b = img.getpixel((x, y))[:3]
+        y = max(0, min(y, img.height - 1))
+        
+        r, g, b = img.getpixel((x, y))[:3]
         result = judge_temperature(r, g, b)
 
-        # ★★★ 屏幕右下角立刻弹出提示（不需要找结果，弹窗直接告诉你）★★★
+        # 右下角弹窗提示
         st.toast(f"🎯 判定结果：{result}")
 
-        # 在图片上画红点，让用户知道点哪了
+        # 在图片上画红圈
         marked_img = img.copy()
         draw = ImageDraw.Draw(marked_img)
         draw.ellipse((x-8, y-8, x+8, y+8), outline="red", width=3)
         st.image(marked_img, caption="📍 您点击的位置", width=400)
 
-        # 结果紧贴在图片下方显示（因为图片变小了，这里绝对在屏幕内）
+        # 直接在图片下方显示结果，不需要找侧边栏
         st.markdown(f"### 🎯 取色结果")
         st.markdown(f"**坐标：** ({x}, {y})  |  **RGB：** ({r}, {g}, {b})")
         st.markdown(f"**判断结果：** {result}")
