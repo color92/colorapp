@@ -7,6 +7,8 @@ st.set_page_config(page_title="冷暖调判断器", page_icon="🎨")
 st.title("🎨 冷暖调判断器")
 st.write("上传一张照片，点击图片上的位置，立刻判断颜色的冷暖调。")
 
+st.warning("💡 重要提示：点击图片上的位置后，结果会在图片的正下方显示，请向下滑动查看！")
+
 def judge_temperature(r, g, b):
     h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
     hue_deg = h * 360
@@ -45,7 +47,7 @@ uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
     
-    # 压缩图片
+    # 压缩图片（改回400，保证清晰度和点击精度）
     if max(img.size) > 400:
         ratio = 400 / max(img.size)
         img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
@@ -56,26 +58,29 @@ if uploaded_file is not None:
     if value is not None:
         x, y = value["x"], value["y"]
         
-        # ★★★ 这里就是防止边缘崩溃的防护代码 ★★★
         x = max(0, min(x, img.width - 1))
         y = max(0, min(y, img.height - 1))
         
         r, g, b = img.getpixel((x, y))[:3]
         result = judge_temperature(r, g, b)
 
-        # 右下角弹窗提示
-        st.toast(f"🎯 判定结果：{result}")
-
-        # 在图片上画红圈
         marked_img = img.copy()
         draw = ImageDraw.Draw(marked_img)
-        draw.ellipse((x-8, y-8, x+8, y+8), outline="red", width=3)
+        draw.ellipse((x-6, y-6, x+6, y+6), outline="red", width=3)
+        draw.line((x-10, y, x+10, y), fill="red", width=2)
+        draw.line((x, y-10, x, y+10), fill="red", width=2)
+        
         st.image(marked_img, caption="📍 您点击的位置", width=400)
 
-        # 直接在图片下方显示结果，不需要找侧边栏
-        st.markdown(f"### 🎯 取色结果")
-        st.markdown(f"**坐标：** ({x}, {y})  |  **RGB：** ({r}, {g}, {b})")
-        st.markdown(f"**判断结果：** {result}")
+        st.markdown("---")
+        st.markdown(
+            f"<h2 style='text-align: center; color: #d32f2f; margin-bottom: 0;'>🎯 判定结果：{result}</h2>", 
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f"<p style='text-align: center; color: #666;'>坐标：({x}, {y})  |  RGB：({r}, {g}, {b})</p >", 
+            unsafe_allow_html=True
+        )
 
 st.divider()
 st.write("📧 如有建议，请联系：**2037076846@qq.com**")
