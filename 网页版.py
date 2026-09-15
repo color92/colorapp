@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 import colorsys
 from streamlit_image_coordinates import streamlit_image_coordinates
 
@@ -19,18 +19,17 @@ def judge_temperature(r, g, b):
     if s < 0.20: return "柔灰（偏冷/暖）"
 
     # 2. 判断色彩三要素
-    # 冷暖
     temp = "暖调" if hue_deg < 180 else "冷调"
     
-    # 深浅（明度V）
+    # 深浅（明度V）—— 过滤掉中等
     if v > 0.75: lightness = "轻浅"
     elif v < 0.40: lightness = "深沉"
-    else: lightness = ""  # 中等就直接留空
+    else: lightness = "" 
     
-    # 柔艳（饱和度S）
+    # 柔艳（饱和度S）—— 过滤掉适中
     if s > 0.60: satur = "鲜艳"
     elif s < 0.30: satur = "柔和"
-    else: satur = ""  # 适中就直接留空
+    else: satur = ""
 
     # 3. 色相具体名称
     if hue_deg < 30 or hue_deg >= 330: color_name = "红"
@@ -47,15 +46,17 @@ def judge_temperature(r, g, b):
 
     # 4. 拼接（过滤掉空字符串）
     prefix = f"{lightness}{satur}"
-    if prefix:  # 如果还有轻浅/深沉/鲜艳/柔和
+    if prefix: 
         return f"{prefix}的{temp}{color_name}"
-    else:       # 如果前面都没了，直接返回冷暖+颜色
+    else:       
         return f"{temp}{color_name}"
 
 uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png", "bmp"])
 
 if uploaded_file is not None:
+    # ★★★ 修复点1：自动纠正手机照片的旋转方向 ★★★
     img = Image.open(uploaded_file)
+    img = ImageOps.exif_transpose(img)  # 这句代码解决了90%的“点哪偏哪”问题
     
     # 压缩图片到400像素宽
     if max(img.size) > 400:
@@ -68,14 +69,13 @@ if uploaded_file is not None:
     if value is not None:
         x, y = value["x"], value["y"]
         
-        # 防崩溃保护
+        # 修复点2：防止点边缘崩溃
         x = max(0, min(x, img.width - 1))
         y = max(0, min(y, img.height - 1))
         
         r, g, b = img.getpixel((x, y))[:3]
         result = judge_temperature(r, g, b)
 
-        # 显示结果
         st.markdown("---")
         
         # 截取局部放大图
