@@ -54,43 +54,41 @@ def judge_temperature(r, g, b):
 uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png", "bmp"])
 
 if uploaded_file is not None:
-    # ★★★ 修复点1：自动纠正手机照片的旋转方向 ★★★
-    img = Image.open(uploaded_file)
-    img = ImageOps.exif_transpose(img)  # 这句代码解决了90%的“点哪偏哪”问题
+    # ★★★ 核心修复：不再预先压缩图片！直接用原图！ ★★★
+    img_original = Image.open(uploaded_file)
+    img_original = ImageOps.exif_transpose(img_original)  # 纠正手机照片旋转
     
-    # 压缩图片到400像素宽
-    if max(img.size) > 400:
-        ratio = 400 / max(img.size)
-        img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
-
     st.write("👇 点击图片上的位置取色：")
-    value = streamlit_image_coordinates(img, key="click", width=400)
+    # 把原图传给坐标库，库会自动在前端缩放显示，但返回的是原图的精确坐标
+    value = streamlit_image_coordinates(img_original, key="click", width=400)
 
     if value is not None:
         x, y = value["x"], value["y"]
         
-        # 修复点2：防止点边缘崩溃
-        x = max(0, min(x, img.width - 1))
-        y = max(0, min(y, img.height - 1))
+        # 防崩溃保护
+        x = max(0, min(x, img_original.width - 1))
+        y = max(0, min(y, img_original.height - 1))
         
-        r, g, b = img.getpixel((x, y))[:3]
+        # 直接在原图上取色，100%精准
+        r, g, b = img_original.getpixel((x, y))[:3]
         result = judge_temperature(r, g, b)
 
         st.markdown("---")
         
-        # 截取局部放大图
-        crop_size = 40
+        # 在原图上裁剪局部放大图
+        crop_size = 100  # 原图较大，裁剪范围相应放大
         left = max(0, x - crop_size)
         top = max(0, y - crop_size)
-        right = min(img.width, x + crop_size)
-        bottom = min(img.height, y + crop_size)
+        right = min(img_original.width, x + crop_size)
+        bottom = min(img_original.height, y + crop_size)
         
-        crop_img = img.crop((left, top, right, bottom))
+        crop_img = img_original.crop((left, top, right, bottom))
         crop_img = crop_img.resize((100, 100), Image.Resampling.LANCZOS)
         
+        # 计算中心点并绘制红十字准星
         draw = ImageDraw.Draw(crop_img)
-        center_x = x - left
-        center_y = y - top
+        center_x = (x - left) * (100 / (right - left))
+        center_y = (y - top) * (100 / (bottom - top))
         draw.line((center_x, 0, center_x, 100), fill="red", width=2)
         draw.line((0, center_y, 100, center_y), fill="red", width=2)
         draw.ellipse((center_x-5, center_y-5, center_x+5, center_y+5), outline="red", width=2)
