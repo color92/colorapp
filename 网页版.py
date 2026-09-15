@@ -6,32 +6,26 @@ from streamlit_image_coordinates import streamlit_image_coordinates
 st.set_page_config(page_title="冷暖调判断器", page_icon="🎨")
 st.title("🎨 冷暖调判断器")
 st.write("上传一张照片，点击图片上的位置，立刻判断颜色的冷暖调。")
-
 st.warning("💡 重要提示：点击图片后，结果会在图片正下方显示，请向下滑动查看！")
 
 def judge_temperature(r, g, b):
     h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
     hue_deg = h * 360
 
-    # 1. 黑白灰优先判断
     if v < 0.25: return "深黑（偏冷/暖）"
     if v > 0.80 and s < 0.20: return "净白（偏冷/暖）"
     if s < 0.20: return "柔灰（偏冷/暖）"
 
-    # 2. 判断色彩三要素
     temp = "暖调" if hue_deg < 180 else "冷调"
     
-    # 深浅（明度V）—— 过滤掉中等
     if v > 0.75: lightness = "轻浅"
     elif v < 0.40: lightness = "深沉"
     else: lightness = "" 
     
-    # 柔艳（饱和度S）—— 过滤掉适中
     if s > 0.60: satur = "鲜艳"
     elif s < 0.30: satur = "柔和"
     else: satur = ""
 
-    # 3. 色相具体名称
     if hue_deg < 30 or hue_deg >= 330: color_name = "红"
     elif hue_deg < 60: color_name = "橙"
     elif hue_deg < 90: color_name = "黄"
@@ -44,7 +38,6 @@ def judge_temperature(r, g, b):
     elif hue_deg < 300: color_name = "紫"
     else: color_name = "紫红"
 
-    # 4. 拼接（过滤掉空字符串）
     prefix = f"{lightness}{satur}"
     if prefix: 
         return f"{prefix}的{temp}{color_name}"
@@ -54,41 +47,46 @@ def judge_temperature(r, g, b):
 uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png", "bmp"])
 
 if uploaded_file is not None:
-    # ★★★ 核心修复：不再预先压缩图片！直接用原图！ ★★★
-    img_original = Image.open(uploaded_file)
-    img_original = ImageOps.exif_transpose(img_original)  # 纠正手机照片旋转
+    # 1. 纠正手机照片的旋转方向
+    img = Image.open(uploaded_file)
+    img = ImageOps.exif_transpose(img)
     
+    # 2. ★★★ 统一压缩：不管是展示、点击、取色全用这张图 ★★★
+    max_size = 600 # 压缩到600像素宽，兼顾速度与清晰度
+    if max(img.size) > max_size:
+        ratio = max_size / max(img.size)
+        img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
+
     st.write("👇 点击图片上的位置取色：")
-    # 把原图传给坐标库，库会自动在前端缩放显示，但返回的是原图的精确坐标
-    value = streamlit_image_coordinates(img_original, key="click", width=400)
+    # 3. 传这张压缩图给前端
+    value = streamlit_image_coordinates(img, key="click", width=400)
 
     if value is not None:
         x, y = value["x"], value["y"]
         
         # 防崩溃保护
-        x = max(0, min(x, img_original.width - 1))
-        y = max(0, min(y, img_original.height - 1))
+        x = max(0, min(x, img.width - 1))
+        y = max(0, min(y, img.height - 1))
         
-        # 直接在原图上取色，100%精准
-        r, g, b = img_original.getpixel((x, y))[:3]
+        # 4. 就在这张压缩图上取色（绝对不偏移）
+        r, g, b = img.getpixel((x, y))[:3]
         result = judge_temperature(r, g, b)
 
         st.markdown("---")
         
-        # 在原图上裁剪局部放大图
-        crop_size = 100  # 原图较大，裁剪范围相应放大
+        # 5. 裁剪放大图也基于这张压缩图
+        crop_size = 40
         left = max(0, x - crop_size)
         top = max(0, y - crop_size)
-        right = min(img_original.width, x + crop_size)
-        bottom = min(img_original.height, y + crop_size)
+        right = min(img.width, x + crop_size)
+        bottom = min(img.height, y + crop_size)
         
-        crop_img = img_original.crop((left, top, right, bottom))
+        crop_img = img.crop((left, top, right, bottom))
         crop_img = crop_img.resize((100, 100), Image.Resampling.LANCZOS)
         
-        # 计算中心点并绘制红十字准星
         draw = ImageDraw.Draw(crop_img)
-        center_x = (x - left) * (100 / (right - left))
-        center_y = (y - top) * (100 / (bottom - top))
+        center_x = x - left
+        center_y = y - top
         draw.line((center_x, 0, center_x, 100), fill="red", width=2)
         draw.line((0, center_y, 100, center_y), fill="red", width=2)
         draw.ellipse((center_x-5, center_y-5, center_x+5, center_y+5), outline="red", width=2)
