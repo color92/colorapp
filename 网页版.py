@@ -25,12 +25,12 @@ def judge_temperature(r, g, b):
     # 深浅（明度V）
     if v > 0.75: lightness = "轻浅"
     elif v < 0.40: lightness = "深沉"
-    else: lightness = "中等"
+    else: lightness = ""  # 中等就直接留空
     
     # 柔艳（饱和度S）
     if s > 0.60: satur = "鲜艳"
     elif s < 0.30: satur = "柔和"
-    else: satur = "适中"
+    else: satur = ""  # 适中就直接留空
 
     # 3. 色相具体名称
     if hue_deg < 30 or hue_deg >= 330: color_name = "红"
@@ -45,8 +45,12 @@ def judge_temperature(r, g, b):
     elif hue_deg < 300: color_name = "紫"
     else: color_name = "紫红"
 
-    # 4. 拼接成高级描述
-    return f"{lightness}{satur}的{temp}{color_name}"
+    # 4. 拼接（过滤掉空字符串）
+    prefix = f"{lightness}{satur}"
+    if prefix:  # 如果还有轻浅/深沉/鲜艳/柔和
+        return f"{prefix}的{temp}{color_name}"
+    else:       # 如果前面都没了，直接返回冷暖+颜色
+        return f"{temp}{color_name}"
 
 uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png", "bmp"])
 
