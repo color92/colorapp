@@ -16,7 +16,10 @@
             margin: 0;
         }
         h1 { color: #4CAF50; margin-bottom: 5px; }
-        p { color: #666; font-size: 14px; text-align: center; }
+        p { color: #666; font-size: 14px; text-align: center; margin-bottom: 8px;}
+        .warn-text { color: #d32f2f; font-weight: bold; margin-top: 5px; }
+        .email-text { color: #666; font-size: 12px; margin-top: 15px; }
+        
         #upload-btn {
             background-color: #4CAF50; color: white; border: none;
             padding: 12px 24px; border-radius: 8px; font-size: 16px;
@@ -24,11 +27,13 @@
         }
         #upload-btn:hover { background-color: #45a049; }
         #file-input { display: none; }
+        
         #canvas-container {
             margin-top: 20px; border: 2px solid #ddd;
             border-radius: 10px; overflow: hidden; max-width: 100%; background: #fff;
         }
         canvas { display: block; max-width: 100%; height: auto; cursor: crosshair; }
+        
         #result-box {
             margin-top: 20px; width: 100%; max-width: 500px;
             background: white; padding: 20px; border-radius: 12px;
@@ -49,6 +54,8 @@
     <h1>🎨 冷暖调判断器</h1>
     <p>上传一张照片，点击图片上的任意位置，立刻判断颜色。</p >
     
+    <p class="warn-text">💡 重要提示：点击图片后，结果会在图片正下方显示，请向下滑动查看！</p >
+
     <button id="upload-btn" onclick="document.getElementById('file-input').click()">📁 选择图片</button>
     <input type="file" id="file-input" accept="image/*">
 
@@ -62,6 +69,8 @@
         <div id="coord-text"></div>
     </div>
 
+    <p class="email-text">📧 如有建议或反馈，请联系：2037076846@qq.com</p >
+
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -73,22 +82,16 @@
 
         let img = new Image();
 
-        // 监听上传
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(event) {
                 img.onload = function() {
-                    // 设置画布尺寸等于原图尺寸，保证坐标完全一致
                     canvas.width = img.width;
                     canvas.height = img.height;
-                    // 限制画布最大宽度，手机端自适应
                     canvas.style.maxWidth = '100%';
                     canvas.style.height = 'auto';
-                    
-                    // 绘制图片
                     ctx.drawImage(img, 0, 0);
                     resultBox.style.display = 'block';
                     resultText.innerText = '请点击图片上的位置';
@@ -100,29 +103,19 @@
             reader.readAsDataURL(file);
         });
 
-        // 监听画布点击
         canvas.addEventListener('click', function(e) {
             if (!img.src) return;
-
             const rect = canvas.getBoundingClientRect();
-            // 计算真实像素坐标（考虑缩放比例）
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
-            
             const x = Math.floor((e.clientX - rect.left) * scaleX);
             const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-            // 防越界
             if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
 
-            // 获取像素颜色
             const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const r = pixel[0];
-            const g = pixel[1];
-            const b = pixel[2];
+            const r = pixel[0], g = pixel[1], b = pixel[2];
 
-            // 绘制红圈标记（在点击位置重新画圆，避免反复叠加）
-            // 为了不破坏原图，我们先重绘原图再画圈
             ctx.drawImage(img, 0, 0);
             ctx.beginPath();
             ctx.arc(x, y, 15, 0, 2 * Math.PI);
@@ -138,18 +131,13 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // 调用判断逻辑
             const result = judgeTemperature(r, g, b);
-
-            // 更新UI
             resultText.innerText = result;
             coordText.innerText = `坐标：(${x}, ${y})  |  RGB：(${r}, ${g}, ${b})`;
             colorSwatch.style.background = `rgb(${r},${g},${b})`;
         });
 
-        // 核心判断逻辑（从Python翻译过来的）
         function judgeTemperature(r, g, b) {
-            // RGB 转 HSV
             r /= 255; g /= 255; b /= 255;
             const max = Math.max(r, g, b), min = Math.min(r, g, b);
             let h, s, v = max;
@@ -166,36 +154,26 @@
             }
             const hue_deg = h * 360;
 
-            if (v < 0.25) return "深黑（偏冷/暖）";
-            if (v > 0.80 && s < 0.20) return "净白（偏冷/暖）";
-            if (s < 0.20) return "柔灰（偏冷/暖）";
+            // 提取冷暖倾向用于黑白灰
+            const temp_tendency = hue_deg < 180 ? "暖" : "冷";
 
-            const temp = hue_deg < 180 ? "暖调" : "冷调";
-            
-            let lightness = "";
-            if (v > 0.75) lightness = "轻浅";
-            else if (v < 0.40) lightness = "深沉";
+            if (v < 0.25) return `${temp_tendency}黑`; 
+            if (v > 0.80 && s < 0.20) return `${temp_tendency}白`;
+            if (s < 0.20) return `${temp_tendency}灰`;
 
-            let satur = "";
-            if (s > 0.60) satur = "鲜艳";
-            else if (s < 0.30) satur = "柔和";
-
-            let color_name = "";
-            if (hue_deg < 30 || hue_deg >= 330) color_name = "红";
-            else if (hue_deg < 60) color_name = "橙";
-            else if (hue_deg < 90) color_name = "黄";
-            else if (hue_deg < 120) color_name = "黄绿";
-            else if (hue_deg < 150) color_name = "绿";
-            else if (hue_deg < 180) color_name = "青绿";
-            else if (hue_deg < 210) color_name = "青";
-            else if (hue_deg < 240) color_name = "蓝";
-            else if (hue_deg < 270) color_name = "蓝紫";
-            else if (hue_deg < 300) color_name = "紫";
-            else color_name = "紫红";
-
-            const prefix = `${lightness}${satur}`;
-            if (prefix) return `${prefix}的${temp}${color_name}`;
-            return `${temp}${color_name}`;
+            // ★★★ 恢复交界地带双重结果 ★★★
+            if (hue_deg < 30) return "暖调红 / 暖调橙";
+            else if (hue_deg < 60) return "暖调黄 / 暖调橙";
+            else if (hue_deg < 90) return "冷调黄 / 暖调绿";
+            else if (hue_deg < 120) return "暖调绿";
+            else if (hue_deg < 150) return "冷绿";
+            else if (hue_deg < 180) return "暖调青 / 冷调绿";
+            else if (hue_deg < 210) return "冷调青 / 暖调蓝";
+            else if (hue_deg < 240) return "冷调蓝";
+            else if (hue_deg < 270) return "暖调蓝 / 冷调紫";
+            else if (hue_deg < 300) return "冷紫";
+            else if (hue_deg < 330) return "暖调紫";
+            else return "冷调红 / 暖调紫";
         }
     </script>
 </body>
