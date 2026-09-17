@@ -35,7 +35,7 @@
             margin-top: 20px; width: 100%; max-width: 500px;
             background: white; padding: 20px; border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;
-            display: none; /* 初始隐藏 */
+            display: none;
         }
         #color-swatch {
             width: 60px; height: 60px; border-radius: 50%;
@@ -86,14 +86,11 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 img.onload = function() {
-                    // 设置画布尺寸等于原图尺寸，保证坐标完全一致
                     canvas.width = img.width;
                     canvas.height = img.height;
-                    // 限制画布最大宽度，手机端自适应
                     canvas.style.maxWidth = '100%';
                     canvas.style.height = 'auto';
                     
-                    // 绘制图片
                     ctx.drawImage(img, 0, 0);
                     resultBox.style.display = 'block';
                     resultText.innerText = '请点击图片上的位置';
@@ -110,24 +107,19 @@
             if (!img.src) return;
 
             const rect = canvas.getBoundingClientRect();
-            // 计算真实像素坐标（考虑缩放比例）
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             
             const x = Math.floor((e.clientX - rect.left) * scaleX);
             const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-            // 防越界
             if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
 
-            // 获取像素颜色
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const r = pixel[0];
             const g = pixel[1];
             const b = pixel[2];
 
-            // 绘制红圈标记（在点击位置重新画圆，避免反复叠加）
-            // 为了不破坏原图，我们先重绘原图再画圈
             ctx.drawImage(img, 0, 0);
             ctx.beginPath();
             ctx.arc(x, y, 15, 0, 2 * Math.PI);
@@ -143,18 +135,15 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // 调用判断逻辑
             const result = judgeTemperature(r, g, b);
 
-            // 更新UI
             resultText.innerText = result;
             coordText.innerText = `坐标：(${x}, ${y})  |  RGB：(${r}, ${g}, ${b})`;
             colorSwatch.style.background = `rgb(${r},${g},${b})`;
         });
 
-        // 核心判断逻辑（从Python翻译过来的，已加入米、棕、粉的专属逻辑）
+        // ★★★ 核心判断逻辑（已完美修复灰色深浅问题）★★★
         function judgeTemperature(r, g, b) {
-            // RGB 转 HSV
             r /= 255; g /= 255; b /= 255;
             const max = Math.max(r, g, b), min = Math.min(r, g, b);
             let h, s, v = max;
@@ -171,10 +160,22 @@
             }
             const hue_deg = h * 360;
 
-            if (v < 0.25) return "深黑（偏冷/暖）";
-            if (v > 0.80 && s < 0.20) return "净白（偏冷/暖）";
-            if (s < 0.20) return "柔灰（偏冷/暖）";
+            // 1. 黑白灰精准冷暖判断
+            const temp_tendency = hue_deg < 180 ? "暖调" : "冷调";
+            
+            // 黑
+            if (v < 0.25) return `${temp_tendency}黑`;
+            // 白
+            if (v > 0.80 && s < 0.20) return `${temp_tendency}白`;
+            
+            // 灰（★★★ 新增：深浅区分 ★★★）
+            if (s < 0.20) {
+                if (v > 0.65) return `清浅的${temp_tendency}灰`;
+                if (v < 0.35) return `深沉的${temp_tendency}灰`;
+                return `${temp_tendency}灰`; // 中等灰，不啰嗦
+            }
 
+            // 2. 常规颜色属性计算
             const temp = hue_deg < 180 ? "暖调" : "冷调";
             
             let lightness = "";
@@ -193,22 +194,22 @@
                 else prefix = satur;
             }
 
-            // ★★★ 新增：米、棕、粉 专属拦截逻辑（去边界词）★★★
-            // 米色：极浅的黄橙区，低饱和
+            // 3. ★★★ 米、棕、粉 专属拦截逻辑（切断边界词）★★★
+            // 米色
             if (hue_deg >= 30 && hue_deg <= 75 && v > 0.80 && s < 0.25) {
                 return `${temp}米`;
             }
-            // 棕色：深暗的黄橙红区
+            // 棕色
             if (hue_deg >= 0 && hue_deg <= 60 && v < 0.50 && s >= 0.15 && s <= 0.65) {
                 return `${temp}棕`;
             }
-            // 粉色：红紫区的浅色
+            // 粉色
             if (((hue_deg >= 300 && hue_deg <= 360) || (hue_deg >= 0 && hue_deg <= 15)) && v > 0.65 && s >= 0.15 && s <= 0.60) {
                 if (prefix) return `${prefix}的${temp}粉`;
                 return `${temp}粉`;
             }
 
-            // 常规颜色判断（保留你原来互斥的色相逻辑）
+            // 4. 常规颜色判断
             let color_name = "";
             if (hue_deg < 30 || hue_deg >= 330) color_name = "红";
             else if (hue_deg < 60) color_name = "橙";
