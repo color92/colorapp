@@ -16,10 +16,9 @@
             margin: 0;
         }
         h1 { color: #4CAF50; margin-bottom: 5px; }
-        p { color: #666; font-size: 14px; text-align: center; margin-bottom: 8px;}
+        p { color: #666; font-size: 14px; text-align: center; }
         .warn-text { color: #d32f2f; font-weight: bold; margin-top: 5px; }
         .email-text { color: #666; font-size: 12px; margin-top: 15px; }
-        
         #upload-btn {
             background-color: #4CAF50; color: white; border: none;
             padding: 12px 24px; border-radius: 8px; font-size: 16px;
@@ -27,18 +26,16 @@
         }
         #upload-btn:hover { background-color: #45a049; }
         #file-input { display: none; }
-        
         #canvas-container {
             margin-top: 20px; border: 2px solid #ddd;
             border-radius: 10px; overflow: hidden; max-width: 100%; background: #fff;
         }
         canvas { display: block; max-width: 100%; height: auto; cursor: crosshair; }
-        
         #result-box {
             margin-top: 20px; width: 100%; max-width: 500px;
             background: white; padding: 20px; border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;
-            display: none;
+            display: none; /* 初始隐藏 */
         }
         #color-swatch {
             width: 60px; height: 60px; border-radius: 50%;
@@ -47,26 +44,14 @@
         }
         #result-text { font-size: 24px; font-weight: bold; color: #d32f2f; margin: 10px 0; }
         #coord-text { font-size: 14px; color: #888; }
-        
-        /* 付费按钮的样式 */
-        #pay-btn-container { margin-top: 25px; display: none; width: 100%; max-width: 500px; text-align: center;}
-        #pay-btn {
-            background-color: #FF9800; color: white; border: none;
-            padding: 15px 30px; border-radius: 30px; font-size: 18px;
-            font-weight: bold; cursor: pointer; box-shadow: 0 4px 8px rgba(255,152,0,0.4);
-            width: 100%; transition: transform 0.2s;
-        }
-        #pay-btn:hover { background-color: #F57C00; transform: scale(1.02); }
-        .pay-tip { font-size: 12px; color: #888; margin-top: 8px; }
     </style>
-</head>
-<body>
+</head><body>
 
     <h1>🎨 冷暖调判断器</h1>
     <p>上传一张照片，点击图片上的任意位置，立刻判断颜色。</p >
     
     <p class="warn-text">💡 重要提示：点击图片后，结果会在图片正下方显示，请向下滑动查看！</p >
-
+    
     <button id="upload-btn" onclick="document.getElementById('file-input').click()">📁 选择图片</button>
     <input type="file" id="file-input" accept="image/*">
 
@@ -80,14 +65,6 @@
         <div id="coord-text"></div>
     </div>
 
-    <!-- 付费解锁按钮 -->
-    <div id="pay-btn-container">
-        <button id="pay-btn" onclick="alert('这里是未来付费解锁专属色彩季型报告的按钮。\n\n实际运营时，点击这里会跳转到第三方支付平台，付款后自动解锁高级色彩诊断报告！')">
-            🔒 解锁专属色彩季型报告（9.9元）
-        </button>
-        <p class="pay-tip">已有兑换码？请发邮件至 2037076846@qq.com 获取专属色彩季型报告</p >
-    </div>
-
     <p class="email-text">📧 如有建议或反馈，请联系：2037076846@qq.com</p >
 
     <script>
@@ -98,45 +75,59 @@
         const resultText = document.getElementById('result-text');
         const coordText = document.getElementById('coord-text');
         const colorSwatch = document.getElementById('color-swatch');
-        const payBtnContainer = document.getElementById('pay-btn-container');
 
         let img = new Image();
 
+        // 监听上传
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
+
             const reader = new FileReader();
             reader.onload = function(event) {
                 img.onload = function() {
+                    // 设置画布尺寸等于原图尺寸，保证坐标完全一致
                     canvas.width = img.width;
                     canvas.height = img.height;
+                    // 限制画布最大宽度，手机端自适应
                     canvas.style.maxWidth = '100%';
                     canvas.style.height = 'auto';
+                    
+                    // 绘制图片
                     ctx.drawImage(img, 0, 0);
                     resultBox.style.display = 'block';
                     resultText.innerText = '请点击图片上的位置';
                     coordText.innerText = '';
                     colorSwatch.style.background = 'transparent';
-                    payBtnContainer.style.display = 'block'; 
                 }
                 img.src = event.target.result;
             }
             reader.readAsDataURL(file);
         });
 
+        // 监听画布点击
         canvas.addEventListener('click', function(e) {
             if (!img.src) return;
+
             const rect = canvas.getBoundingClientRect();
+            // 计算真实像素坐标（考虑缩放比例）
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
+            
             const x = Math.floor((e.clientX - rect.left) * scaleX);
             const y = Math.floor((e.clientY - rect.top) * scaleY);
 
+            // 防越界
             if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
 
+            // 获取像素颜色
             const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const r = pixel[0], g = pixel[1], b = pixel[2];
+            const r = pixel[0];
+            const g = pixel[1];
+            const b = pixel[2];
 
+            // 绘制红圈标记（在点击位置重新画圆，避免反复叠加）
+            // 为了不破坏原图，我们先重绘原图再画圈
             ctx.drawImage(img, 0, 0);
             ctx.beginPath();
             ctx.arc(x, y, 15, 0, 2 * Math.PI);
@@ -152,13 +143,18 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
+            // 调用判断逻辑
             const result = judgeTemperature(r, g, b);
+
+            // 更新UI
             resultText.innerText = result;
             coordText.innerText = `坐标：(${x}, ${y})  |  RGB：(${r}, ${g}, ${b})`;
             colorSwatch.style.background = `rgb(${r},${g},${b})`;
         });
 
+        // 核心判断逻辑（从Python翻译过来的，已加入米、棕、粉的专属逻辑）
         function judgeTemperature(r, g, b) {
+            // RGB 转 HSV
             r /= 255; g /= 255; b /= 255;
             const max = Math.max(r, g, b), min = Math.min(r, g, b);
             let h, s, v = max;
@@ -174,24 +170,60 @@
                 h /= 6;
             }
             const hue_deg = h * 360;
-            const temp_tendency = hue_deg < 180 ? "暖" : "冷";
 
-            if (v < 0.25) return `${temp_tendency}黑`; 
-            if (v > 0.80 && s < 0.20) return `${temp_tendency}白`;
-            if (s < 0.20) return `${temp_tendency}灰`;
+            if (v < 0.25) return "深黑（偏冷/暖）";
+            if (v > 0.80 && s < 0.20) return "净白（偏冷/暖）";
+            if (s < 0.20) return "柔灰（偏冷/暖）";
 
-            if (hue_deg < 30) return "暖调红 / 暖调橙";
-            else if (hue_deg < 60) return "暖调黄 / 暖调橙";
-            else if (hue_deg < 90) return "冷调黄 / 暖调绿";
-            else if (hue_deg < 120) return "暖调绿";
-            else if (hue_deg < 150) return "冷绿";
-            else if (hue_deg < 180) return "暖调青 / 冷调绿";
-            else if (hue_deg < 210) return "冷调青 / 暖调蓝";
-            else if (hue_deg < 240) return "冷调蓝";
-            else if (hue_deg < 270) return "暖调蓝 / 冷调紫";
-            else if (hue_deg < 300) return "冷紫";
-            else if (hue_deg < 330) return "暖调紫";
-            else return "冷调红 / 暖调紫";
+            const temp = hue_deg < 180 ? "暖调" : "冷调";
+            
+            let lightness = "";
+            if (v > 0.75) lightness = "清浅";
+            else if (v < 0.40) lightness = "深沉";
+
+            let satur = "";
+            if (s > 0.60) satur = "鲜艳";
+            else if (s < 0.30) satur = "柔和";
+
+            let lightnessWeight = (lightness !== "") ? Math.abs(v - 0.5) : 0;
+            let saturWeight = (satur !== "") ? Math.abs(s - 0.5) : 0;
+            let prefix = "";
+            if (lightnessWeight !== 0 || saturWeight !== 0) {
+                if (lightnessWeight >= saturWeight) prefix = lightness;
+                else prefix = satur;
+            }
+
+            // ★★★ 新增：米、棕、粉 专属拦截逻辑（去边界词）★★★
+            // 米色：极浅的黄橙区，低饱和
+            if (hue_deg >= 30 && hue_deg <= 75 && v > 0.80 && s < 0.25) {
+                return `${temp}米`;
+            }
+            // 棕色：深暗的黄橙红区
+            if (hue_deg >= 0 && hue_deg <= 60 && v < 0.50 && s >= 0.15 && s <= 0.65) {
+                return `${temp}棕`;
+            }
+            // 粉色：红紫区的浅色
+            if (((hue_deg >= 300 && hue_deg <= 360) || (hue_deg >= 0 && hue_deg <= 15)) && v > 0.65 && s >= 0.15 && s <= 0.60) {
+                if (prefix) return `${prefix}的${temp}粉`;
+                return `${temp}粉`;
+            }
+
+            // 常规颜色判断（保留你原来互斥的色相逻辑）
+            let color_name = "";
+            if (hue_deg < 30 || hue_deg >= 330) color_name = "红";
+            else if (hue_deg < 60) color_name = "橙";
+            else if (hue_deg < 90) color_name = "黄";
+            else if (hue_deg < 120) color_name = "黄绿";
+            else if (hue_deg < 150) color_name = "绿";
+            else if (hue_deg < 180) color_name = "青绿";
+            else if (hue_deg < 210) color_name = "青";
+            else if (hue_deg < 240) color_name = "蓝";
+            else if (hue_deg < 270) color_name = "蓝紫";
+            else if (hue_deg < 300) color_name = "紫";
+            else color_name = "紫红";
+
+            if (prefix) return `${prefix}的${temp}${color_name}`;
+            return `${temp}${color_name}`;
         }
     </script>
 </body>
