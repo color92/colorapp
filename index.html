@@ -106,7 +106,9 @@
             if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
 
             const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const r = pixel[0], g = pixel[1], b = pixel[2];
+            const r = pixel[0];
+            const g = pixel[1];
+            const b = pixel[2];
 
             ctx.drawImage(img, 0, 0);
             ctx.beginPath();
@@ -124,6 +126,7 @@
             ctx.stroke();
 
             const result = judgeTemperature(r, g, b);
+
             resultText.innerText = result;
             coordText.innerText = `坐标：(${x}, ${y})  |  RGB：(${r}, ${g}, ${b})`;
             colorSwatch.style.background = `rgb(${r},${g},${b})`;
@@ -135,7 +138,7 @@
             }
         });
 
-        // ★★★ 核心判断逻辑（完全恢复你定下的精确色相范围，只外加米棕粉拦截）★★★
+        // ★★★ 核心判断逻辑（严格区分免费/付费边界：绝不输出轻浅/深沉/鲜艳/柔和等付费维度）★★★
         function judgeTemperature(r, g, b) {
             r /= 255; g /= 255; b /= 255;
             const max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -153,43 +156,43 @@
             }
             const hue_deg = h * 360;
 
-            // 1. 黑白灰（冷暖+深浅）
+            // ==========================================
+            // 优先级 1：黑白灰（免费版只给冷暖，不给深浅）
+            // ==========================================
             const temp_tendency = hue_deg < 180 ? "暖调" : "冷调";
             if (v < 0.25) return `${temp_tendency}黑`;
-            if (v > 0.80 && s < 0.20) return `${temp_tendency}白`;
-            if (s < 0.20) {
-                if (v > 0.65) return `清浅的${temp_tendency}灰`;
-                if (v < 0.35) return `深沉的${temp_tendency}灰`;
-                return `${temp_tendency}灰`;
+            if (v > 0.90 && s < 0.10) return `${temp_tendency}白`;
+            if (s < 0.12) return `${temp_tendency}灰`;
+
+            // ==========================================
+            // 优先级 2：粉色（死守315-345度，绝不沾染红橙）
+            // ==========================================
+            if (hue_deg >= 315 && hue_deg <= 345) {
+                return `${temp_tendency}粉`;
             }
 
-            // 2. 属性计算
-            const temp = hue_deg < 180 ? "暖调" : "冷调";
-            let lightness = ""; if (v > 0.75) lightness = "清浅"; else if (v < 0.40) lightness = "深沉";
-            let satur = ""; if (s > 0.60) satur = "鲜艳"; else if (s < 0.30) satur = "柔和";
-            let lightnessWeight = (lightness !== "") ? Math.abs(v - 0.5) : 0;
-            let saturWeight = (satur !== "") ? Math.abs(s - 0.5) : 0;
-            let prefix = "";
-            if (lightnessWeight !== 0 || saturWeight !== 0) {
-                if (lightnessWeight >= saturWeight) prefix = lightness; else prefix = satur;
-            }
-
-            // ★★★ 米、棕、粉 专属拦截逻辑（只拦截它们，绝不染指其他颜色的范围）★★★
-            // 米色：严格限定在黄橙区（30-90度），极浅、低饱和
+            // ==========================================
+            // 优先级 3：米色（严格锁定 30-90度）
+            // ==========================================
             if (hue_deg >= 30 && hue_deg <= 90 && v > 0.80 && s < 0.25) {
-                return `${temp}米`;
-            }
-            // 棕色：严格限定在红橙黄区（0-60度），深暗
-            if (hue_deg >= 0 && hue_deg <= 60 && v < 0.50 && s >= 0.15 && s <= 0.70) {
-                return `${temp}棕`;
-            }
-            // 粉色：严格限定在紫红区（315-360度），浅、柔和（粉色保留形容词）
-            if (hue_deg >= 315 && hue_deg <= 360 && v > 0.65 && s >= 0.15 && s <= 0.65) {
-                if (prefix) return `${prefix}的${temp}粉`;
-                return `${temp}粉`;
+                let mTemp = (hue_deg < 60) ? "暖调" : "冷调";
+                return `${mTemp}米`;
             }
 
-            // 3. ★★★ 其他颜色：完全按照你最初定下的精确范围，恢复双重边界结果 ★★★
+            // ==========================================
+            // 优先级 4：棕色（330-360 & 0-90度，严格区分冷暖）
+            // ==========================================
+            if (((hue_deg >= 330 && hue_deg <= 360) || (hue_deg >= 0 && hue_deg <= 90)) && v < 0.50 && s >= 0.15 && s <= 0.70) {
+                let bTemp = "暖调";
+                if ((hue_deg >= 330 && hue_deg <= 360) || (hue_deg > 60 && hue_deg <= 90)) {
+                    bTemp = "冷调";
+                }
+                return `${bTemp}棕`;
+            }
+
+            // ==========================================
+            // 优先级 5：其他颜色（完全按原定精准范围，恢复双重边界结果，不给前缀）
+            // ==========================================
             let color1 = "", color2 = "";
             if (hue_deg < 30 || hue_deg >= 330) { color1 = "暖调红"; color2 = "暖调橙"; }
             else if (hue_deg < 60) { color1 = "暖调黄"; color2 = "暖调橙"; }
@@ -203,10 +206,9 @@
             else if (hue_deg < 300) { color1 = "冷紫"; }
             else if (hue_deg < 330) { color1 = "暖调紫"; }
             
-            // 根据是否有前缀，拼接最终结果
             let finalResults = [];
-            if (color1) finalResults.push(prefix ? `${prefix}的${color1}` : color1);
-            if (color2) finalResults.push(prefix ? `${prefix}的${color2}` : color2);
+            if (color1) finalResults.push(color1);
+            if (color2) finalResults.push(color2);
 
             return finalResults.join(" / ");
         }
