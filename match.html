@@ -1,0 +1,542 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>色彩搭配方案</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; background-color: #f7f9fc; color: #333; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        h1 { color: #4CAF50; margin-bottom: 10px; }
+        .back-btn { background-color: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 15px; box-shadow: 0 3px 6px rgba(33,150,243,0.3); }
+        .back-btn:hover { background-color: #1976D2; }
+        .principle-box { width: 100%; max-width: 700px; background: #FFF8E1; border-left: 5px solid #FFC107; border-radius: 8px; padding: 15px 20px; margin-bottom: 20px; text-align: left; }
+        .principle-box h3 { margin: 0 0 10px 0; color: #D84315; font-size: 16px; }
+        .principle-box p { margin: 6px 0; font-size: 14px; color: #555; line-height: 1.6; }
+        .hint-text { background: #E8F5E9; border-left: 4px solid #4CAF50; padding: 15px 20px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; color: #2E7D32; line-height: 1.8; }
+        .color-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; justify-content: center; max-width: 700px; }
+        .color-btn { width: 50px; height: 50px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: 0.2s; }
+        .color-btn.active { border-color: #333; transform: scale(1.1); }
+        .detail-box { width: 100%; max-width: 700px; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; text-align: left; }
+        .detail-box h2 { margin-top: 0; color: #333; font-size: 22px; }
+        .match-section { margin-bottom: 20px; }
+        .match-section h4 { margin: 0 0 8px 0; color: #4CAF50; font-size: 15px; }
+        .match-section p, .match-section ul { margin: 4px 0; font-size: 14px; color: #555; line-height: 1.6; }
+        .match-section ul { padding-left: 20px; }
+        details { margin-bottom: 12px; border: 1px solid #eee; border-radius: 8px; padding: 10px 15px; background: #fafafa; }
+        summary { font-weight: bold; cursor: pointer; color: #333; font-size: 15px; }
+        details p, details ul { margin: 10px 0 5px 0; font-size: 14px; color: #555; line-height: 1.6; }
+        details ul { padding-left: 20px; }
+        .emotion-tag-btn { background: #FFF3E0; color: #E65100; border: 1px solid #FFB74D; border-radius: 4px; padding: 6px 12px; font-size: 14px; cursor: pointer; margin: 4px; display: inline-block; transition: 0.2s; }
+        .emotion-tag-btn:hover { background: #FFE0B2; }
+        .emotion-detail { display: none; margin-top: 8px; background: #FFFDF5; padding: 10px; border-radius: 6px; border-left: 3px solid #FFB74D; font-size: 13px; color: #555; line-height: 1.6; }
+        #external-colors-panel { width: 100%; max-width: 700px; background: #E8F5E9; border-left: 4px solid #4CAF50; border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; display: none; text-align: left; }
+        #external-colors-panel p { margin: 0 0 8px 0; font-size: 13px; color: #2E7D32; }
+        .external-color-tag { display: inline-block; background: #fff; border: 2px solid #ccc; border-radius: 20px; padding: 5px 14px 5px 8px; margin: 3px; font-size: 13px; color: #333; cursor: pointer; transition: 0.2s; }
+        .external-color-tag:hover { background: #f0f0f0; }
+        .external-color-tag.active { border-color: #333; box-shadow: 0 0 0 2px rgba(0,0,0,0.15); }
+        .external-color-tag .dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; margin-right: 6px; border: 1px solid #999; }
+        .feedback-line { margin-top: 30px; margin-bottom: 20px; font-size: 13px; color: #888; text-align: center; }
+        .feedback-line a { color: #4CAF50; text-decoration: none; font-weight: bold; }
+        .feedback-line a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>🎨 色彩搭配方案</h1>
+    <button class="back-btn" id="backBtn" style="display:none;" onclick="goBack()">← 返回多点分析器</button>
+    <div class="principle-box">
+        <h3>📋 搭配总原则</h3>
+        <div class="hint-text">
+            💡 温馨提示：<br>
+            <span style="display:block; margin-top:0.6em;">本文档中出现的所有用于搭配的颜色名称，均指其所属的家族色系，并基于您当前测出的冷暖调进行搭配</span>
+            <span style="display:block; margin-top:0.6em;">例如您测出的是暖调红，下文所有用于搭配的“红”均指暖调红家族（含深暖红、浅暖红、艳暖红、浊暖红等），以此类推。</span>
+        </div>
+        <p><b>1. 色调一致：</b>暖调搭暖调，冷调搭冷调。</p >
+        <p><b>2. 和谐与变化并存：</b>相同属性越多，搭配越和谐，但同时颜色搭配也需要一定变化。<br>在深浅和艳柔两个维度里，其中一个维度要相同，另一个维度要产生明显变化。</p >
+        <p><b>3. 面积差异：</b>面积一定要有差异，不能看起来大致相同。<br>主色占大面积，辅色占小面积，比例大致为 3:7、2:8、1:9 或 4:6，忌 5:5。</p >
+        <p><b>4. 平淡时加亮点：</b>整体搭配太平淡时，只添加亮点配饰。<br>可以用深浅对比、艳浊对比、色相对比等，比如全身深色时加浅色包包或腰带，打破沉闷。</p >
+    </div>
+    <div id="external-colors-panel">
+        <p>✨ 来自多点分析器的颜色（点击查看搭配）：</p >
+        <div id="externalColors"></div>
+    </div>
+    <div class="color-selector" id="colorSelector"></div>
+    <div class="detail-box" id="detailBox">
+        <h2 id="colorName"></h2>
+        <div class="match-section" id="emotionSection" style="display:none;">
+            <h4>同情绪色搭配（点击情绪词查看可搭颜色）</h4>
+            <div id="emotionTags"></div>
+        </div>
+        <div class="match-section">
+            <h4>首选搭配（本色系 + 邻色系）</h4>
+            <p id="primaryMatch"></p >
+        </div>
+        <div class="match-section">
+            <h4>优选搭配（其他色系）</h4>
+            <p id="secondaryMatch"></p >
+        </div>
+        <div class="match-section">
+            <h4>对比色搭配</h4>
+            <p id="contrastMatch"></p >
+        </div>
+        <div class="match-section">
+            <h4>具体组合方案（以下每一组都是有效搭配，组内所有颜色均可一起使用）</h4>
+            <ul id="comboList"></ul>
+        </div>
+        <details id="dualColorBox">
+            <summary>📖 双色搭配法</summary>
+            <ul>
+                <li>相同色系搭配（<span id="tagSameHue"></span>）</li>
+                <li id="adjacentHueLine">相邻色相搭配（<span id="tagAdjacentHue"></span>）</li>
+                <li>面积对比搭配（大与小）</li>
+                <li>色相对比搭配（<span id="tagContrastHue"></span>）</li>
+                <li>明度对比搭配（浅色、中色、深色，任意两种搭配在一起）</li>
+                <li>艳度对比搭配（鲜艳、柔和、灰色，任意两种搭配在一起）</li>
+                <li>如果搭配到了一个与此颜色很相似的颜色，在两个颜色接驳处，可以用上文的四种对比色进行区分</li>
+            </ul>
+        </details>
+        <details id="multiColorBox">
+            <summary>📖 多色搭配法</summary>
+            <ul>
+                <li id="lightGradientLine">明度渐进：同色系颜色，从浅到深或从深到浅。例如：<span id="tagLightGradient"></span></li>
+                <li id="saturGradientLine">艳度渐进：从鲜艳色慢慢过渡到柔浊色，再慢慢到灰色。例如：<span id="tagSaturGradient"></span></li>
+                <li>彩虹渐进：相同调性的红橙黄绿青蓝紫，按顺序慢慢变化<br>（相同调性，如都是深色、都是浅色、都是艳色、都是浊色）</li>
+                <li>相同特质搭配：深+深、浅+浅、冷+冷、暖+暖、艳+艳、浊+浊</li>
+            </ul>
+        </details>
+        <div class="match-section" id="achromaticBox" style="display:none;">
+            <p style="font-weight: bold; color: #333; font-size: 15px; margin-bottom: 8px;">🌟 无彩色搭配说明</p >
+            <p>无彩色（黑白灰）理论上可以与任意颜色进行搭配。</p >
+        </div>
+        <details id="specialBox" style="display:none;">
+            <summary>📖 特殊互搭</summary>
+            <p id="specialMatch"></p >
+        </details>
+    </div><script>
+    const colorHex = {
+        "红": "#E53935", "橙": "#FB8C00", "黄": "#FDD835", "绿": "#43A047",
+        "青": "#00ACC1", "蓝": "#1E88E5", "紫": "#8E24AA", "粉": "#EC407A",
+        "黑": "#212121", "白": "#FAFAFA", "灰": "#9E9E9E", "米": "#D7CCC8", "棕": "#6D4C41",
+        "金": "#FFD700", "银": "#C0C0C0"
+    };
+    const coreEmotionMap = {
+        "活力": ["活力","年轻","青春","活泼","生命","生命力","能量","运动","积极","欢快","乐观","阳光","生气勃勃"],
+        "温暖": ["温暖","热情","柔和","温馨","舒适","温和","亲和","热量"],
+        "力量": ["力量","权力","强势","热血","权威","激情","危险","警告","愤怒","紧迫","攻击"],
+        "浪漫": ["浪漫","柔情","恋爱","甜蜜","梦幻","童话"],
+        "高级": ["高级","奢华","尊贵","皇权","地位","华丽","高贵","典雅","优雅","贵重","财富"],
+        "冷静": ["冷静","理性","沉稳","沉静","安宁","平和","平静","平稳","稳定","可靠","专业","信任","中立","安静"],
+        "神秘": ["神秘","魔法","幻想","灵性","深邃","深沉","距离","冷漠","疏离"],
+        "自然": ["自然","平和","疗愈","健康","和谐","环保","生态","大地","朴素","耐看"],
+        "甜美": ["可爱","甜美","俏皮","纯真","天真","少女","温柔","关怀","养育"],
+        "现代": ["现代","科技","未来感","极简","简约","精密","工业","机械","太空"],
+        "严肃": ["正式","严肃","庄重","端庄","严谨","沉稳","深沉","保守","传统"],
+        "忧郁": ["忧郁","悲伤","孤独","哀悼","凄惨","黯淡","沮丧"],
+        "清透": ["干净","洁净","清爽","清透","清澈","水感","清新","纯净","纯洁","无瑕","圣洁"]
+    };
+    const colorData = {
+        "红": {
+            hue: 0, isWarm: true, isCool: false, name: "暖调红 / 暖调橙",
+            tags: ["喜庆","活力","力量","欢快","生命","热血","暴力","牺牲","血腥","恐怖","爱","激情","权力","危险","警告","愤怒","紧迫","攻击"],
+            primary: "红、粉；紫、橙",
+            secondary: "黑、白、绿、灰、米、棕",
+            contrast: "绿、青、蓝",
+            combos: ["红 + 粉 + 绿 + 黑","红 + 粉 + 绿 + 灰","红 + 粉 + 绿 + 棕","红 + 粉 + 米"],
+            lightEx: "深红（如酒红）慢慢到浅红（如浅粉）",
+            saturEx: "艳红色慢慢到砖红色，慢慢到灰色"
+        },
+        "橙": {
+            hue: 30, isWarm: true, isCool: false, name: "暖调橙 / 暖调黄",
+            tags: ["温暖","积极","兴奋","年轻","活力","活泼","友好","创意","食欲","高可见","刺激","有能量","亲和","乐观"],
+            primary: "橙、棕；红、黄",
+            secondary: "绿、紫、米",
+            contrast: "青、蓝、紫",
+            combos: ["橙 + 棕 + 绿","橙 + 紫"],
+            lightEx: "深橙色（如咖啡色）慢慢到浅橙色（如杏色）",
+            saturEx: "艳橙色慢慢到咖啡橙，慢慢到灰色"
+        },
+        "黄": {
+            hue: 60, isWarm: true, isCool: false, name: "暖调黄 / 冷调黄",
+            tags: ["活力","明快","年轻","尊贵","皇权","阳光","快乐","乐观","智慧","注意","财富","希望","创意","食欲"],
+            primary: "黄、金、米；橙、绿",
+            secondary: "蓝、黑、棕、紫、青",
+            contrast: "蓝、紫、青",
+            combos: ["黄 + 绿 + 蓝 + 棕","黄 + 绿 + 黑","黄 + 蓝 + 紫","黄 + 青"],
+            lightEx: "深黄（如土黄）慢慢到浅黄（如米黄）",
+            saturEx: "艳黄色慢慢到柔黄色，慢慢到灰色"
+        },
+        "绿": {
+            hue: 120, isWarm: false, isCool: true, name: "冷调绿 / 暖调绿",
+            tags: ["生命","活力","和平","平和","希望","自然","健康","安全","成长","平衡","疗愈","和谐","青春"],
+            primary: "绿；黄、青",
+            secondary: "粉、棕、黑、红、蓝、白、灰、橙",
+            contrast: "红、橙、粉",
+            combos: ["绿 + 粉 + 棕 + 红","绿 + 粉 + 棕 + 蓝","绿 + 粉 + 黑 + 红","绿 + 粉 + 黑 + 白","绿 + 粉 + 红 + 灰","绿 + 粉 + 蓝 + 白","绿 + 棕 + 黄","绿 + 棕 + 橙","绿 + 黑 + 黄","绿 + 黄 + 蓝"],
+            lightEx: "深绿（如墨绿）慢慢到浅绿（如薄荷绿）",
+            saturEx: "艳绿色慢慢到灰绿色，慢慢到灰色"
+        },
+        "青": {
+            hue: 180, isWarm: false, isCool: true, name: "冷调青 / 暖调青",
+            tags: ["冷","水感","洁净","科技","清新","冷静","未来感"],
+            primary: "青；绿、蓝",
+            secondary: "粉、白、黄",
+            contrast: "红、橙、紫",
+            combos: ["青 + 粉 + 白","青 + 黄"],
+            lightEx: "深青（如孔雀青）慢慢到浅青（如薄荷青）",
+            saturEx: "艳青色慢慢到柔青色，慢慢到灰色"
+        },
+        "蓝": {
+            hue: 240, isWarm: false, isCool: true, name: "冷调蓝 / 暖调蓝",
+            tags: ["清爽","沉静","冷静","冷酷","安宁","冷淡","深远","神秘","忧郁","深沉","理性","沉稳","科技","信任","专业","稳定","智慧","忠诚","和平","宁静","清洁","浩瀚","冷漠","悲伤","孤独","可靠","专注","水感","未来","冷感"],
+            primary: "蓝；青、紫",
+            secondary: "绿、粉、棕、黄、白",
+            contrast: "橙、黄、红",
+            combos: ["蓝 + 绿 + 粉 + 白","蓝 + 绿 + 粉 + 棕","蓝 + 绿 + 棕 + 黄","蓝 + 粉 + 紫","蓝 + 黄 + 紫"],
+            lightEx: "深蓝（如藏蓝）慢慢到浅蓝（如天蓝）",
+            saturEx: "艳蓝色慢慢到灰蓝色，慢慢到灰色"
+        },
+        "紫": {
+            hue: 300, isWarm: false, isCool: true, name: "冷调紫 / 暖调紫",
+            tags: ["神秘","优雅","高贵","奢华","地位","尊贵","灵性","创造力","艺术","魔法","幻想","神圣","高级","皇室","权力","智慧","深度","稀有","独特","忧郁"],
+            primary: "紫；蓝、红",
+            secondary: "橙、黄",
+            contrast: "黄、绿、青",
+            combos: ["紫 + 蓝 + 黄","紫 + 蓝 + 粉","紫 + 橙"],
+            lightEx: "深紫（如葡萄紫）慢慢到浅紫（如薰衣草紫）",
+            saturEx: "艳紫色慢慢到灰紫色，慢慢到灰色"
+        },
+        "粉": {
+            hue: 330, isWarm: true, isCool: false, name: "暖调粉 / 冷调粉",
+            tags: ["温柔","年轻","轻快","可爱","柔和","雅致","温暖","浪漫","幸福","甜美","爱","关怀","养育","青春","纯真","女性","亲和","疗愈","俏皮","时尚","友好"],
+            primary: "粉；红、紫",
+            secondary: "绿、蓝、白、青、黑、棕、灰、米",
+            contrast: "绿、青、蓝",
+            combos: ["粉 + 绿 + 红 + 黑","粉 + 绿 + 红 + 棕","粉 + 绿 + 红 + 灰","粉 + 绿 + 蓝 + 白","粉 + 绿 + 蓝 + 棕","粉 + 绿 + 黑 + 白","粉 + 红 + 米","粉 + 蓝 + 紫","粉 + 青 + 白"],
+            lightEx: "深粉（如玫红）慢慢到浅粉（如樱花粉）",
+            saturEx: "艳粉色慢慢到灰粉色，慢慢到灰色"
+        },
+        "黑": {
+            hue: 0, isWarm: false, isCool: false, name: "暖调黑 / 冷调黑",
+            tags: ["正式","严肃","端庄","严谨","深沉","神秘","邪恶","死亡","哀悼","恐惧","黑暗","庄重","地位","力量","优雅","奢华","自信","性感","酷","现代","极简","暴力","高级","高端"],
+            primary: "黑、白、灰",
+            secondary: "粉、红、黄、绿",
+            contrast: "白",
+            combos: ["黑 + 绿 + 粉 + 白","黑 + 绿 + 粉 + 红","黑 + 绿 + 黄"],
+            lightEx: "",
+            saturEx: "",
+            isAchromatic: true
+        },
+        "白": {
+            hue: 0, isWarm: false, isCool: false, name: "暖调白 / 冷调白",
+            tags: ["纯洁","无瑕","圣洁","纯净","干净","哀悼","神圣","和平","简约","现代","中立","新开始","希望","高级","死亡","投降","苍白","病态","丧葬","卫生"],
+            primary: "白、黑、灰",
+            secondary: "粉、绿、蓝、青",
+            contrast: "黑",
+            combos: ["白 + 绿 + 粉 + 黑","白 + 绿 + 粉 + 蓝","白 + 粉 + 青"],
+            lightEx: "",
+            saturEx: "",
+            isAchromatic: true
+        },
+        "灰": {
+            hue: 0, isWarm: false, isCool: false, name: "暖调灰 / 冷调灰",
+            tags: ["中庸","平和","平衡","沉静","安静","理性","乏味","无性格","中性","专业","现代","低调","成熟","稳定","可靠","冷静","模糊","暧昧","冷漠","疏离","无聊","不确定","不表态","妥协","折中","平庸","单调","保守"],
+            primary: "灰、黑、白",
+            secondary: "绿、红、粉",
+            contrast: "黑、白",
+            combos: ["灰 + 绿 + 红 + 粉"],
+            lightEx: "",
+            saturEx: "",
+            isAchromatic: true
+        },
+        "米": {
+            hue: 45, isWarm: true, isCool: false, name: "暖调米 / 冷调米",
+            tags: ["温和","自然","中立","安全","平静","低调","优雅","保守","耐看","温暖"],
+            primary: "米、黄、金",
+            secondary: "红、粉",
+            contrast: "蓝、紫",
+            combos: ["米 + 红 + 粉"],
+            lightEx: "深米色(如驼色)慢慢到浅米色(如燕麦色)",
+            saturEx: "",
+            hideSpecial: true
+        },
+        "棕": {
+            hue: 30, isWarm: true, isCool: false, name: "暖调棕 / 冷调棕",
+            tags: ["自然","稳定","可靠","温暖","朴素","复古","耐用","成熟","保守","舒适"],
+            primary: "棕、橙；红、黄",
+            secondary: "绿、粉、蓝",
+            contrast: "蓝、青、绿",
+            combos: ["棕 + 绿 + 粉 + 红","棕 + 绿 + 粉 + 蓝","棕 + 绿 + 蓝 + 黄","棕 + 绿 + 橙"],
+            lightEx: "深棕（如巧克力色）慢慢到浅棕（如卡其色）",
+            saturEx: ""
+        },
+        "金": {
+            hue: 50, isWarm: true, isCool: false, name: "暖调金",
+            tags: ["财富","贵重","奢华","豪华","权力","皇权","辉煌","奢侈","成功","威望","神圣","庆典","胜利","高级","稀缺","永恒"],
+            primary: "金、黄、米",
+            secondary: "黑、白、红、绿",
+            contrast: "蓝、紫、青",
+            combos: ["金 + 黑 + 红","金 + 白 + 绿"],
+            lightEx: "",
+            saturEx: ""
+        },
+        "银": {
+            hue: 0, isWarm: false, isCool: true, name: "冷调银",
+            tags: ["高贵","贵气","冷静","冷硬","科技","未来","现代","精密","理性","高级","优雅","洁净","中立","速度","太空","机械","工业","月光","镜子","冰冷","距离","无情","人造","专业","卫生","纯净"],
+            primary: "银；灰、白",
+            secondary: "蓝、紫、粉、黑",
+            contrast: "橙、红、黄",
+            combos: ["银 + 蓝 + 白","银 + 黑 + 紫"],
+            lightEx: "",
+            saturEx: ""
+        }
+    };
+</script><script>
+    const selector = document.getElementById('colorSelector');
+    Object.keys(colorHex).forEach(key => {
+        const btn = document.createElement('div');
+        btn.className = 'color-btn';
+        btn.style.backgroundColor = colorHex[key];
+        btn.title = key;
+        btn.onclick = () => showColor(key, btn);
+        selector.appendChild(btn);
+    });
+    function goBack() {
+        window.location.href = 'analyzer.html';
+    }
+    function getTempPrefix(displayName) {
+        if (!displayName) return "";
+        if (displayName.includes("暖调")) return "暖调";
+        if (displayName.includes("冷调")) return "冷调";
+        return "";
+    }
+    function applyPrefixToText(text, tempPrefix) {
+        if (!tempPrefix || !text) return text;
+        const colorNames = ["红", "橙", "黄", "绿", "青", "蓝", "紫", "粉", "黑", "白", "灰", "米", "棕", "金", "银"];
+        let result = "";
+        for (let i = 0; i < text.length; i++) {
+            let ch = text[i];
+            if (colorNames.includes(ch)) {
+                let alreadyHasPrefix = result.endsWith("暖调") || result.endsWith("冷调");
+                if (!alreadyHasPrefix) {
+                    let prefix = tempPrefix;
+                    if (ch === "金") prefix = "暖调";
+                    if (ch === "银") prefix = "冷调";
+                    result += prefix;
+                }
+            }
+            result += ch;
+        }
+        return result;
+    }
+    function getCoreEmotions(tags) {
+        let cores = new Set();
+        for (let core in coreEmotionMap) {
+            if (tags.some(tag => coreEmotionMap[core].includes(tag))) {
+                cores.add(core);
+            }
+        }
+        return Array.from(cores);
+    }
+    function getEmotionMatches(currentKey, currentTags) {
+        let matches = {};
+        let currentCores = getCoreEmotions(currentTags);
+        for (let key in colorData) {
+            if (key === currentKey) continue;
+            let otherCores = getCoreEmotions(colorData[key].tags);
+            let common = currentCores.filter(c => otherCores.includes(c));
+            common.forEach(core => {
+                if (!matches[core]) matches[core] = [];
+                matches[core].push(key);
+            });
+        }
+        return matches;
+    }
+    function showColor(key, btn, displayName) {
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.external-color-tag').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        const data = colorData[key];
+        if (!data) { document.getElementById('detailBox').style.display = 'none'; return; }
+        const tempPrefix = getTempPrefix(displayName);
+        if (displayName) {
+            document.getElementById('colorName').innerText = displayName;
+        } else {
+            document.getElementById('colorName').innerText = key + "：" + data.name;
+        }
+        document.getElementById('primaryMatch').innerText = applyPrefixToText(data.primary, tempPrefix);
+        document.getElementById('secondaryMatch').innerText = applyPrefixToText(data.secondary, tempPrefix);
+        document.getElementById('contrastMatch').innerText = applyPrefixToText(data.contrast, tempPrefix);
+        document.getElementById('comboList').innerHTML = data.combos.map(c => `<li>${applyPrefixToText(c, tempPrefix)}</li>`).join('');
+        let primaryParts = data.primary.split('；');
+        document.getElementById('tagSameHue').innerText = applyPrefixToText(primaryParts[0] || "无", tempPrefix);
+        let adjacentHueLine = document.getElementById('adjacentHueLine');
+        if (key === "米" || key === "金") {
+            adjacentHueLine.style.display = 'none';
+        } else {
+            adjacentHueLine.style.display = 'list-item';
+            let adjacentPart = primaryParts.length > 1 ? primaryParts[1] : "";
+            document.getElementById('tagAdjacentHue').innerText = applyPrefixToText(adjacentPart || "无", tempPrefix);
+        }
+        let lightGradientLine = document.getElementById('lightGradientLine');
+        if (key === "金" || key === "银") {
+            lightGradientLine.style.display = 'none';
+        } else {
+            lightGradientLine.style.display = 'list-item';
+            document.getElementById('tagLightGradient').innerText = data.lightEx || "";
+        }
+        let saturGradientLine = document.getElementById('saturGradientLine');
+        if (key === "金" || key === "银" || key === "米" || key === "棕") {
+            saturGradientLine.style.display = 'none';
+        } else {
+            saturGradientLine.style.display = 'list-item';
+            document.getElementById('tagSaturGradient').innerText = data.saturEx || "";
+        }
+        document.getElementById('tagContrastHue').innerText = applyPrefixToText(data.contrast, tempPrefix);
+        let emotionMatches = getEmotionMatches(key, data.tags);
+        let emotionTagsDiv = document.getElementById('emotionTags');
+        emotionTagsDiv.innerHTML = '';
+        let hasEmotion = false;
+        for (let core in emotionMatches) {
+            hasEmotion = true;
+            let colors = emotionMatches[core].map(c => applyPrefixToText(c, tempPrefix)).join("、");
+            let btnHtml = `<span class="emotion-tag-btn" onclick="toggleEmotionDetail('${core}', '${colors}')">${core}</span>`;
+            let detailHtml = `<div class="emotion-detail" id="detail_${core}">与 ${colors} 具有相同的「${core}」情绪，可以搭配。</div>`;
+            emotionTagsDiv.innerHTML += btnHtml + detailHtml;
+        }
+        document.getElementById('emotionSection').style.display = hasEmotion ? 'block' : 'none';
+        let dualColorBox = document.getElementById('dualColorBox');
+        let multiColorBox = document.getElementById('multiColorBox');
+        let achromaticBox = document.getElementById('achromaticBox');
+        let specialBox = document.getElementById('specialBox');
+        let specialMatch = document.getElementById('specialMatch');
+        if (data.isAchromatic) {
+            dualColorBox.style.display = 'none';
+            multiColorBox.style.display = 'none';
+            achromaticBox.style.display = 'block';
+            specialBox.style.display = 'none';
+        } else if (key === "金" || key === "银") {
+            dualColorBox.style.display = 'block';
+            multiColorBox.style.display = 'none';
+            achromaticBox.style.display = 'none';
+            specialBox.style.display = 'none';
+        } else {
+            dualColorBox.style.display = 'block';
+            multiColorBox.style.display = 'block';
+            achromaticBox.style.display = 'none';
+            let showSpecial = false;
+            let specialText = "";
+            if (data.hideSpecial) {
+                showSpecial = false;
+            } else if (displayName) {
+                const naturalCool = ["绿", "青", "蓝", "紫"];
+                const naturalWarm = ["红", "橙", "黄", "粉"];
+                let foundColor = null;
+                for (let c of [...naturalCool, ...naturalWarm]) {
+                    if (displayName.includes(c)) { foundColor = c; break; }
+                }
+                if (foundColor) {
+                    let effectiveIsCool = naturalCool.includes(foundColor);
+                    let effectiveIsWarm = naturalWarm.includes(foundColor);
+                    if (effectiveIsCool && displayName.includes("轻浅")) {
+                        showSpecial = true;
+                        specialText = "当冷色为轻浅调时，可以搭配深沉的暖色（如深红、深棕、深黄等）。";
+                    } else if (effectiveIsCool && displayName.includes("鲜艳")) {
+                        showSpecial = true;
+                        specialText = "当冷色为鲜艳调时，可以搭配深沉的暖色（如深红、深棕、深黄等）。";
+                    } else if (effectiveIsWarm && displayName.includes("深沉")) {
+                        showSpecial = true;
+                        specialText = "当暖色为深沉调时，可以搭配浅调冷色、艳调冷色（如浅蓝、浅绿、艳青、艳紫等）。";
+                    }
+                } else {
+                    if (displayName.includes("棕")) {
+                        showSpecial = true;
+                        specialText = "当暖色为深沉调时，可以搭配浅调冷色、艳调冷色（如浅蓝、浅绿、艳青、艳紫等）。";
+                    } else if (displayName.includes("暖调") && displayName.includes("深沉")) {
+                        showSpecial = true;
+                        specialText = "当暖色为深沉调时，可以搭配浅调冷色、艳调冷色（如浅蓝、浅绿、艳青、艳紫等）。";
+                    } else if (displayName.includes("冷调") && displayName.includes("轻浅")) {
+                        showSpecial = true;
+                        specialText = "当冷色为轻浅调时，可以搭配深沉的暖色（如深红、深棕、深黄等）。";
+                    } else if (displayName.includes("冷调") && displayName.includes("鲜艳")) {
+                        showSpecial = true;
+                        specialText = "当冷色为鲜艳调时，可以搭配深沉的暖色（如深红、深棕、深黄等）。";
+                    }
+                }
+            } else {
+                if (data.isWarm) {
+                    showSpecial = true;
+                    specialText = "当暖色为深沉调时，可以搭配浅调冷色、艳调冷色（如浅蓝、浅绿、艳青、艳紫等）。";
+                } else if (data.isCool) {
+                    showSpecial = true;
+                    specialText = "当冷色为轻浅调或鲜艳调时，可以搭配深沉的暖色（如深红、深棕、深黄等）。";
+                }
+            }
+            if (showSpecial) {
+                specialBox.style.display = 'block';
+                specialMatch.innerText = specialText;
+            } else {
+                specialBox.style.display = 'none';
+            }
+        }
+        document.getElementById('detailBox').style.display = 'block';
+    }
+    function toggleEmotionDetail(core, colors) {
+        let el = document.getElementById(`detail_${core}`);
+        if (el.style.display === 'block') {
+            el.style.display = 'none';
+        } else {
+            el.style.display = 'block';
+        }
+    }
+    window.onload = function() {
+        const params = new URLSearchParams(window.location.search);
+
+        const colorsParam = params.get('colors');
+        if (colorsParam) {
+            const colorNames = ["红", "橙", "黄", "绿", "青", "蓝", "紫", "粉", "黑", "白", "灰", "米", "棕", "金", "银"];
+            const list = colorsParam.split(';').filter(Boolean);
+            const panel = document.getElementById('external-colors-panel');
+            const container = document.getElementById('externalColors');
+            const selectorEl = document.getElementById('colorSelector');
+            const backBtn = document.getElementById('backBtn');
+            selectorEl.style.display = 'none';
+            backBtn.style.display = 'inline-block';
+            let firstBase = null, firstFull = null;
+            list.forEach(item => {
+                const sep = item.indexOf('|');
+                if (sep < 0) return;
+                const baseName = item.substring(0, sep);
+                const fullName = item.substring(sep + 1);
+                if (!colorNames.includes(baseName)) return;
+                if (!firstBase) { firstBase = baseName; firstFull = fullName; }
+                const tag = document.createElement('span');
+                tag.className = 'external-color-tag';
+                const bg = colorHex[baseName] || '#ccc';
+                tag.innerHTML = `<span class="dot" style="background:${bg};"></span>${fullName}`;
+                tag.onclick = () => showColor(baseName, tag, fullName);
+                container.appendChild(tag);
+            });
+            if (list.length > 0 && firstBase) {
+                panel.style.display = 'block';
+                setTimeout(() => {
+                    const t = container.querySelector('.external-color-tag');
+                    showColor(firstBase, t, firstFull);
+                }, 50);
+            }
+            return;
+        }
+
+        const colorParam = params.get('color');
+        if (colorParam && colorData[colorParam]) {
+            const btns = document.querySelectorAll('.color-btn');
+            const index = Object.keys(colorHex).indexOf(colorParam);
+            if (index >= 0 && btns[index]) {
+                showColor(colorParam, btns[index]);
+            }
+        }
+    };
+</script>
+<div class="feedback-line">
+    📮 觉得好用或不好用，<a href="https://adcl6hp2.jsjform.com/f/W8O2yY" target="_blank">点这里随便说两句 →</a >
+</div>
+</body>
+</html>

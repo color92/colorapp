@@ -1,0 +1,353 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>色彩多点分析器</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; background-color: #f7f9fc; color: #333; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        h1 { color: #4CAF50; margin-bottom: 5px; }
+        p { color: #666; font-size: 14px; text-align: center; margin-bottom: 8px;}
+        .warn-text { color: #d32f2f; font-weight: bold; margin-top: 5px; }
+        .email-text { color: #666; font-size: 12px; margin-top: 15px; }
+        #upload-btn { background-color: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #upload-btn:hover { background-color: #45a049; }
+        #file-input { display: none; }
+        #canvas-container { margin-top: 20px; border: 2px solid #ddd; border-radius: 10px; overflow: hidden; max-width: 100%; background: #fff; display: none; }
+        canvas { display: block; max-width: 100%; height: auto; cursor: crosshair; }
+        .action-panel { margin-top: 15px; display: flex; gap: 10px; justify-content: center; display: none; width: 100%; max-width: 500px;}
+        .action-btn { flex: 1; padding: 10px; border-radius: 8px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s;}
+        #record-btn { background-color: #2196F3; }
+        #clear-btn { background-color: #9E9E9E; }
+        #result-box { margin-top: 20px; width: 100%; max-width: 600px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
+        #result-box h3 { margin-top: 0; color: #333; font-size: 18px; text-align: center; }
+        .color-record { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; border-radius: 8px; padding: 12px 15px; margin-bottom: 8px; }
+        .color-swatch { width: 36px; height: 36px; border-radius: 50%; margin-right: 12px; border: 2px solid #ccc; flex-shrink: 0; }
+        .color-info { text-align: left; flex-grow: 1; display: flex; flex-direction: column; gap: 4px; }
+        .season-text { font-size: 15px; font-weight: bold; color: #d32f2f; }
+        .desc-text { font-size: 13px; color: #555; }
+        .btn-match { background-color: #2196F3; color: white; border: none; border-radius: 4px; padding: 5px 8px; font-size: 12px; cursor: pointer; margin-right: 10px; flex-shrink: 0; }
+        .delete-btn { background-color: #ff4d4f; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; line-height: 24px; text-align: center; cursor: pointer; margin-left: 10px; flex-shrink: 0;}
+        #summary-box { margin-top: 20px; padding: 15px; background: #FFF8E1; border-radius: 8px; border-left: 5px solid #FFC107; text-align: left; display: none;}
+        #summary-text { font-size: 14px; font-weight: bold; color: #D84315; line-height: 1.5;}
+        #from-free-tip { display: none; background: #E8F5E9; border-left: 4px solid #4CAF50; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; color: #2E7D32; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>🎨 色彩多点分析器</h1>
+    <p>上传一张照片，点击图片上的位置，提取主要颜色并分析色彩属性。</p >
+    <p class="warn-text">💡 建议提取 3~5 个主要颜色（如大面积区域、主色调，避开极小细节或反光点）。</p >
+    <p class="warn-text" style="font-size:12px; color:#888; font-weight:normal;">📸 温馨提醒：为获得最准确的测试结果，请尽量上传【自然光下】的照片，避开强反光、深阴影或美颜滤镜。</p >
+    <button id="upload-btn" onclick="document.getElementById('file-input').click()">📁 上传照片并开始提取</button>
+    <input type="file" id="file-input" accept="image/*">
+    <div id="canvas-container"><canvas id="canvas"></canvas></div>
+    <div class="action-panel" id="action-panel">
+        <button class="action-btn" id="record-btn" onclick="toggleRecording()">暂停记录（已记录 0 个）</button>
+        <button class="action-btn" id="clear-btn" onclick="clearRecords()">🗑️ 清空重来</button>
+    </div>
+    <div id="result-box">
+        <div id="from-free-tip">✨ 以下颜色来自您在免费版中选中的颜色，可直接查看搭配或继续上传图片添加更多。</div>
+        <h3>📋 颜色提取记录（点击图片上的主要颜色区域）</h3>
+        <div id="color-list"></div>
+        <div id="summary-box"><div id="summary-text">整体倾向分析</div></div>
+    </div>
+    <p class="email-text" style="font-size:11px; color:#aaa;">📌 免责声明：本工具基于HSV模型，针对服装场景的自定义色彩规则，仅供参考。所有分析均在本地完成，不会上传您的照片。</p ><script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const fileInput = document.getElementById('file-input');
+const canvasContainer = document.getElementById('canvas-container');
+const resultBox = document.getElementById('result-box');
+const colorList = document.getElementById('color-list');
+const summaryBox = document.getElementById('summary-box');
+const summaryText = document.getElementById('summary-text');
+const actionPanel = document.getElementById('action-panel');
+const recordBtn = document.getElementById('record-btn');
+let img = new Image();
+let selectedColors = [];
+let isRecording = true;
+
+function saveState() {
+    try {
+        if (img.src && selectedColors.length > 0) {
+            const tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = canvas.width;
+            tmpCanvas.height = canvas.height;
+            const tmpCtx = tmpCanvas.getContext('2d');
+            tmpCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const compressed = tmpCanvas.toDataURL('image/jpeg', 0.7);
+            const canvasPoints = selectedColors.map(c => ({
+                x: c.x, y: c.y, r: c.r, g: c.g, b: c.b
+            }));
+            sessionStorage.setItem('freeImage', compressed);
+            sessionStorage.setItem('freePoints', JSON.stringify(canvasPoints));
+        } else if (selectedColors.length === 0) {
+            sessionStorage.removeItem('freeImage');
+            sessionStorage.removeItem('freePoints');
+        }
+    } catch (err) {}
+}
+fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        img.onload = function() {
+            const maxSize = 800;
+            let ratio = 1;
+            if (img.width > maxSize || img.height > maxSize) { ratio = maxSize / Math.max(img.width, img.height); }
+            canvas.width = img.width * ratio;
+            canvas.height = img.height * ratio;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            selectedColors = [];
+            isRecording = true;
+            saveState();
+            updateUI();
+            canvasContainer.style.display = 'block';
+            actionPanel.style.display = 'flex';
+            resultBox.style.display = 'block';
+            document.getElementById('from-free-tip').style.display = 'none';
+        }
+        img.src = event.target.result;
+    }
+    reader.readAsDataURL(file);
+});
+function toggleRecording() { isRecording = !isRecording; updateUI(); }
+function clearRecords() { selectedColors = []; if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height); saveState(); updateUI(); }
+function removeColor(index) { selectedColors.splice(index, 1); redrawCanvas(); saveState(); updateUI(); }
+canvas.addEventListener('click', function(e) {
+    if (!img.src || !isRecording) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
+    const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
+    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
+    const pixel = ctx.getImageData(x, y, 1, 1).data;
+    selectedColors.push({ x: x, y: y, r: pixel[0], g: pixel[1], b: pixel[2], rawData: judgeSingleColor(pixel[0], pixel[1], pixel[2]) });
+    redrawCanvas();
+    saveState();
+    updateUI();
+});
+function redrawCanvas() {
+    if (!img.src) return;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    selectedColors.forEach((color, idx) => {
+        if (color.x === null) return;
+        ctx.beginPath(); ctx.arc(color.x, color.y, 12, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.fillStyle = '#FF0000'; ctx.font = 'bold 14px Arial';
+        ctx.fillText(idx + 1, color.x + 15, color.y + 5);
+    });
+}
+function goToMatch(finalDesc, finalSeason) {
+    const colorNames = ["红", "橙", "黄", "绿", "青", "蓝", "紫", "粉", "黑", "白", "灰", "米", "棕", "金", "银"];
+    let candidates = [];
+    let seen = new Set();
+    let parts = finalDesc.split(' / ');
+    let pm = finalDesc.match(/^(以.+?为主的.+?)(?=暖调|冷调)/);
+    let prefix = pm ? pm[1] : "";
+    parts.forEach(p => {
+        let foundColor = colorNames.find(c => p.includes(c));
+        if (!foundColor || seen.has(foundColor)) return;
+        seen.add(foundColor);
+        let fullDesc;
+        if (p.startsWith("以")) {
+            fullDesc = p;
+        } else {
+            fullDesc = prefix + p;
+        }
+        candidates.push(foundColor + '|' + fullDesc);
+    });
+    if (candidates.length === 0) return;
+    window.location.href = 'match.html?colors=' + encodeURIComponent(candidates.join(';'));
+}
+function updateUI() {
+    colorList.innerHTML = '';
+    let warmCount = 0, coolCount = 0, dualToneCount = 0;
+    selectedColors.forEach(c => {
+        if (c.rawData.isDualTone) { dualToneCount++; }
+        else {
+            if (c.rawData.temp.includes('暖')) warmCount++;
+            else if (c.rawData.temp.includes('冷')) coolCount++;
+        }
+    });
+    let overallTone = "均衡";
+    if (warmCount > coolCount) overallTone = "暖调";
+    else if (coolCount > warmCount) overallTone = "冷调";
+    selectedColors.forEach((c, index) => {
+        let finalDesc = c.rawData.desc, finalSeason = c.rawData.season;
+        if (c.rawData.isDualTone) {
+            if (overallTone === "暖调") { finalDesc = c.rawData.warmDesc; finalSeason = c.rawData.seasonWarm; }
+            else if (overallTone === "冷调") { finalDesc = c.rawData.coolDesc; finalSeason = c.rawData.seasonCool; }
+            else { finalDesc = c.rawData.descDual; finalSeason = c.rawData.seasonDual; }
+        }
+        const record = document.createElement('div');
+        record.className = 'color-record';
+        record.innerHTML = `
+            <div class="color-swatch" style="background-color: rgb(${c.r},${c.g},${c.b});"></div>
+            <div class="color-info"><span class="season-text">${finalSeason}</span><span class="desc-text">${finalDesc}</span></div>
+            <button class="btn-match" onclick="goToMatch('${finalDesc}', '${finalSeason}')">查看搭配</button>
+            <button class="delete-btn" onclick="removeColor(${index})">❌</button>
+        `;
+        colorList.appendChild(record);
+    });
+    recordBtn.innerHTML = isRecording ? `<span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:#ff4d4f;border:2px solid #333;box-sizing:border-box;margin-right:8px;vertical-align:middle;"></span>暂停记录（已记录 ${selectedColors.length} 个）` : `<span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:#4CAF50;border:2px solid #333;box-sizing:border-box;margin-right:8px;vertical-align:middle;"></span>开始记录（已记录 ${selectedColors.length} 个）`;
+    if (selectedColors.length >= 3) {
+        let overallSummary = "";
+        if (overallTone === "暖调") overallSummary = "整体偏暖调，给人一种温暖、亲切、活力充沛的视觉感受。";
+        else if (overallTone === "冷调") overallSummary = "整体偏冷调，给人一种清冷、高级、疏离的视觉感受。";
+        else {
+            if (dualToneCount === selectedColors.length) overallSummary = "整体冷暖均可，属于非常百搭的色彩组合，暖皮和冷皮都能轻松驾驭。";
+            else overallSummary = "冷暖色势均力敌，色彩层次丰富，极具视觉张力。";
+        }
+        summaryText.innerText = `👔 整体诊断：共提取 ${selectedColors.length} 种颜色。结论：${overallSummary}`;
+        summaryBox.style.display = 'block';
+    } else {
+        summaryBox.style.display = 'none';
+    }
+}    function getSeasonByFeature(leadFeature, temp, secondFeature) {
+        if (leadFeature === "轻浅") return temp === "暖调" ? "浅春型" : "浅夏型";
+        if (leadFeature === "深沉") return temp === "暖调" ? "深秋型" : "深冬型";
+        if (leadFeature === "鲜艳") return temp === "暖调" ? "净春型" : "净冬型";
+        if (leadFeature === "柔和") return temp === "暖调" ? "柔秋型" : "柔夏型";
+        if (leadFeature === "中等偏浅") {
+            if (secondFeature === "中等偏艳") return temp === "暖调" ? "暖春型" : "冷夏 / 冷冬均可穿";
+            if (secondFeature === "中等偏柔和") return temp === "暖调" ? "暖春 / 暖秋均可穿" : "冷夏型";
+        }
+        if (leadFeature === "中等偏深") {
+            if (secondFeature === "中等偏柔和") return temp === "暖调" ? "暖秋型" : "冷夏 / 冷冬均可穿";
+            if (secondFeature === "中等偏艳") return temp === "暖调" ? "暖春 / 暖秋均可穿" : "冷冬型";
+        }
+        return temp === "暖调" ? "暖春 / 暖秋均可穿" : "冷夏 / 冷冬均可穿";
+    }
+    function judgeSingleColor(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, v = max;
+        const d = max - min;
+        s = max === 0 ? 0 : d / max;
+        if (max === min) { h = 0; } else { switch (max) { case r: h = (g - b) / d + (g < b ? 6 : 0); break; case g: h = (b - r) / d + 2; break; case b: h = (r - g) / d + 4; break; } h /= 6; }
+        const hue_deg = h * 360;
+        let temp_tendency = hue_deg < 180 ? "暖调" : "冷调";
+        if (v < 0.25) return { temp: temp_tendency + "黑", desc: temp_tendency + "黑", season: temp_tendency + "黑", isDualTone: false };
+        if (v > 0.90 && s < 0.08) return { temp: temp_tendency + "白", desc: temp_tendency + "白", season: temp_tendency + "白", isDualTone: false };
+        if (s < 0.08) {
+            let grayName = "";
+            let graySeason = "";
+            if (v > 0.65) { grayName = "清浅的" + temp_tendency + "灰"; graySeason = temp_tendency === "暖调" ? "浅春型" : "浅夏型"; }
+            else if (v < 0.35) { grayName = "深沉的" + temp_tendency + "灰"; graySeason = temp_tendency === "暖调" ? "深秋型" : "深冬型"; }
+            else { grayName = temp_tendency + "灰"; graySeason = temp_tendency === "暖调" ? "暖春 / 暖秋均可穿" : "冷夏 / 冷冬均可穿"; }
+            return { temp: temp_tendency + "灰", desc: grayName, season: graySeason, isDualTone: false };
+        }
+        let lightness, satur;
+        if (v > 0.75) lightness = "轻浅";
+        else if (v < 0.40) lightness = "深沉";
+        else if (v >= 0.55) lightness = "中等偏浅";
+        else lightness = "中等偏深";
+        if (s > 0.65) satur = "鲜艳";
+        else if (s < 0.30) satur = "柔和";
+        else if (s >= 0.45) satur = "中等偏艳";
+        else satur = "中等偏柔和";
+        if (((hue_deg >= 330 && hue_deg <= 360) || (hue_deg >= 0 && hue_deg <= 60) || (hue_deg > 60 && hue_deg <= 90 && s <= 0.45)) && v < 0.65 && s >= 0.15 && s <= 0.58) {
+            let bTemp = (hue_deg >= 330 || hue_deg > 60) ? "冷调" : "暖调";
+            let season, desc;
+            if (v < 0.45) { desc = "深沉的" + bTemp + "棕"; season = bTemp === "暖调" ? "深秋型" : "深冬型"; }
+            else { desc = "清浅的" + bTemp + "棕"; season = bTemp === "暖调" ? "浅春型" : "浅夏型"; }
+            return { temp: bTemp, desc: desc, season: season, isDualTone: false };
+        }
+        if (hue_deg >= 315 && hue_deg <= 345) {
+            let pTemp = (hue_deg < 330) ? "冷调" : "暖调";
+            let prefix = `以${lightness}为主的${satur}`;
+            let desc = `${prefix}${pTemp}粉`;
+            let season = getSeasonByFeature(lightness, pTemp, satur);
+            return { temp: pTemp, desc: desc, season: season, isDualTone: false };
+        }
+        if (hue_deg >= 30 && hue_deg <= 90 && v > 0.80 && s < 0.25) {
+            let mTemp = (hue_deg < 60) ? "暖调" : "冷调";
+            return { temp: mTemp, desc: `${mTemp}米`, season: mTemp === "暖调" ? "浅春型" : "浅夏型", isDualTone: false };
+        }
+        let devV = Math.abs(v - 0.575);
+        let devS = Math.abs(s - 0.475);
+        let leadFeature, secondFeature;
+        if (devV >= devS) { leadFeature = lightness; secondFeature = satur; }
+        else { leadFeature = satur; secondFeature = lightness; }
+        let prefix = `以${leadFeature}为主的${secondFeature}`;
+        let isDualTone = false, dualRange = "", singleTemp = "";
+        if (hue_deg >= 0 && hue_deg < 30) { dualRange = "暖调红 / 暖调橙"; singleTemp = "暖调"; }
+        else if (hue_deg >= 30 && hue_deg < 60) { dualRange = "暖调黄 / 暖调橙"; singleTemp = "暖调"; }
+        else if (hue_deg >= 60 && hue_deg < 90) { isDualTone = true; dualRange = "冷调黄 / 暖调绿"; }
+        else if (hue_deg >= 90 && hue_deg < 120) { dualRange = "暖调绿"; singleTemp = "暖调"; }
+        else if (hue_deg >= 120 && hue_deg < 150) { dualRange = "冷调绿"; singleTemp = "冷调"; }
+        else if (hue_deg >= 150 && hue_deg < 180) { isDualTone = true; dualRange = "暖调青 / 冷调绿"; }
+        else if (hue_deg >= 180 && hue_deg < 210) { isDualTone = true; dualRange = "冷调青 / 暖调蓝"; }
+        else if (hue_deg >= 210 && hue_deg < 240) { dualRange = "冷调蓝"; singleTemp = "冷调"; }
+        else if (hue_deg >= 240 && hue_deg < 270) { isDualTone = true; dualRange = "暖调蓝 / 冷调紫"; }
+        else if (hue_deg >= 270 && hue_deg < 300) { dualRange = "冷调紫"; singleTemp = "冷调"; }
+        else if (hue_deg >= 300 && hue_deg < 330) { dualRange = "暖调紫"; singleTemp = "暖调"; }
+        else { isDualTone = true; dualRange = "冷调红 / 暖调紫"; }
+        if (isDualTone) {
+            let dualParts = dualRange.split(' / ');
+            let warmPart = "", coolPart = "";
+            dualParts.forEach(dp => {
+                if (dp.includes("暖调")) warmPart = dp;
+                if (dp.includes("冷调")) coolPart = dp;
+            });
+            let wDesc = warmPart ? `${prefix}${warmPart}` : `${prefix}暖调色`;
+            let cDesc = coolPart ? `${prefix}${coolPart}` : `${prefix}冷调色`;
+            let sWarm = getSeasonByFeature(leadFeature, "暖调", secondFeature);
+            let sCool = getSeasonByFeature(leadFeature, "冷调", secondFeature);
+            return { temp: "双边色", desc: `${prefix}${dualRange}`, descDual: `${prefix}${dualRange}`, season: `${sWarm} / ${sCool} 均可`, seasonDual: `${sWarm} / ${sCool} 均可`, seasonWarm: sWarm, seasonCool: sCool, warmDesc: wDesc, coolDesc: cDesc, isDualTone: true };
+        } else {
+            let desc = `${prefix}${dualRange}`;
+            let season = getSeasonByFeature(leadFeature, singleTemp, secondFeature);
+            return { temp: singleTemp, desc: desc, season: season, isDualTone: false };
+        }
+    }
+    window.addEventListener('load', function() {
+        const storedImage = sessionStorage.getItem('freeImage');
+        const storedPoints = sessionStorage.getItem('freePoints');
+        if (storedImage && storedPoints) {
+            try {
+                const points = JSON.parse(storedPoints);
+                img.onload = function() {
+                    const maxSize = 800;
+                    let ratio = 1;
+                    if (img.width > maxSize || img.height > maxSize) { ratio = maxSize / Math.max(img.width, img.height); }
+                    canvas.width = img.width * ratio;
+                    canvas.height = img.height * ratio;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    selectedColors = [];
+                    points.forEach(p => {
+                        const rx = p.x === null ? null : Math.round(p.x * ratio);
+                        const ry = p.y === null ? null : Math.round(p.y * ratio);
+                        selectedColors.push({ x: rx, y: ry, r: p.r, g: p.g, b: p.b, rawData: judgeSingleColor(p.r, p.g, p.b) });
+                    });
+                    redrawCanvas();
+                    updateUI();
+                    canvasContainer.style.display = 'block';
+                    actionPanel.style.display = 'flex';
+                    resultBox.style.display = 'block';
+                    document.getElementById('from-free-tip').style.display = 'block';
+                };
+                img.src = storedImage;
+                return;
+            } catch (err) {}
+        }
+        const params = new URLSearchParams(window.location.search);
+        const colorsParam = params.get('colors');
+        if (!colorsParam) return;
+        const pairs = colorsParam.split(';');
+        pairs.forEach(pair => {
+            const parts = pair.split(',').map(Number);
+            if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+                const r = parts[0], g = parts[1], b = parts[2];
+                selectedColors.push({ x: null, y: null, r: r, g: g, b: b, rawData: judgeSingleColor(r, g, b) });
+            }
+        });
+        if (selectedColors.length > 0) {
+            document.getElementById('from-free-tip').style.display = 'block';
+            resultBox.style.display = 'block';
+            updateUI();
+        }
+    });
+    </script>
+</body>
+</html>

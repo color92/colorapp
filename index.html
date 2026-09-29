@@ -19,41 +19,54 @@
         #color-swatch { width: 60px; height: 60px; border-radius: 50%; margin: 10px auto; border: 2px solid #333; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         #result-text { font-size: 24px; font-weight: bold; color: #d32f2f; margin: 10px 0; }
         #coord-text { font-size: 14px; color: #888; }
-        #pay-btn-container { margin-top: 25px; display: none; width: 100%; max-width: 500px; text-align: center;}
-        #pay-btn { background-color: #FF9800; color: white; border: none; padding: 15px 30px; border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 8px rgba(255,152,0,0.4); width: 100%; transition: transform 0.2s; }
-        #pay-btn:hover { background-color: #F57C00; transform: scale(1.02); }
-        .pay-tip { font-size: 12px; color: #888; margin-top: 8px; }
+        #pay-btn-container { margin-top: 25px; display: none; width: 100%; max-width: 500px; }
+        .unlock-bar { display: flex; align-items: center; justify-content: space-between; background: white; border-radius: 12px; padding: 14px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #eee; gap: 12px; }
+        .unlock-info { text-align: left; flex: 1; }
+        .unlock-label { font-size: 13px; color: #888; margin-bottom: 4px; }
+        .unlock-price { display: flex; align-items: baseline; gap: 3px; }
+        .price-num { font-size: 28px; font-weight: bold; color: #FF9800; line-height: 1; }
+        .price-unit { font-size: 14px; color: #FF9800; font-weight: bold; }
+        .price-tag { font-size: 12px; color: #999; margin-left: 4px; }
+        #pay-btn { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 10px rgba(76,175,80,0.3); transition: 0.2s; }
+        #pay-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(76,175,80,0.4); }
+        .feedback-line { margin-top: 25px; margin-bottom: 15px; font-size: 13px; color: #888; text-align: center; }
+        .feedback-line a { color: #4CAF50; text-decoration: none; font-weight: bold; }
+        .feedback-line a:hover { text-decoration: underline; }
+        @media (max-width: 480px) {
+            .unlock-bar { flex-direction: column; align-items: stretch; text-align: center; }
+            .unlock-info { text-align: center; }
+            .unlock-price { justify-content: center; }
+        }
     </style>
-</head><body>
-
+</head>
+<body>
     <h1>🎨 冷暖调判断器</h1>
     <p>上传一张照片，点击图片上的任意位置，立刻判断颜色。</p >
-    
     <p class="warn-text">💡 重要提示：点击图片后，结果会在图片正下方显示，请向下滑动查看！</p >
-    
     <button id="upload-btn" onclick="document.getElementById('file-input').click()">📁 选择图片</button>
     <input type="file" id="file-input" accept="image/*">
-
-    <div id="canvas-container">
-        <canvas id="canvas"></canvas>
-    </div>
-
+    <div id="canvas-container"><canvas id="canvas"></canvas></div>
     <div id="result-box">
         <div id="color-swatch"></div>
         <div id="result-text">等待点击...</div>
         <div id="coord-text"></div>
     </div>
-
     <div id="pay-btn-container">
-        <button id="pay-btn" onclick="alert('这里是未来付费解锁专属色彩季型报告的按钮。\n\n实际运营时，点击这里会跳转到第三方支付平台，付款后自动解锁高级色彩诊断报告！')">
-            🔒 解锁完整色彩季型报告（9.9元）
-        </button>
-        <p class="pay-tip">已有兑换码？请发邮件至 2037076846@qq.com 获取</p >
+        <div class="unlock-bar">
+            <div class="unlock-info">
+                <div class="unlock-label">解锁完整色彩解析</div>
+                <div class="unlock-price">
+                    <span class="price-num">3.9</span>
+                    <span class="price-unit">元</span>
+                    <span class="price-tag">前 3 次体验价</span>
+                </div>
+            </div>
+            <button id="pay-btn" onclick="goToAnalyzer()">立即查看报告 →</button>
+        </div>
     </div>
-
-    <p class="email-text">📧 如有建议或反馈，请联系：2037076846@qq.com</p >
-
-    <script>
+    <div class="feedback-line">
+        📮 有问题或建议，<a href="https://adcl6hp2.jsjform.com/f/Uy0CQY" target="_blank">点这里告诉我 →</a >
+    </div>    <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const fileInput = document.getElementById('file-input');
@@ -62,15 +75,13 @@
         const coordText = document.getElementById('coord-text');
         const colorSwatch = document.getElementById('color-swatch');
         const payBtnContainer = document.getElementById('pay-btn-container');
-
         let img = new Image();
-        let clickCount = 0; 
-        let hasTriggeredPay = false; 
-
+        let clickCount = 0;
+        let hasTriggeredPay = false;
+        let currentPoints = [];
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(event) {
                 img.onload = function() {
@@ -78,13 +89,12 @@
                     canvas.height = img.height;
                     canvas.style.maxWidth = '100%';
                     canvas.style.height = 'auto';
-                    
                     ctx.drawImage(img, 0, 0);
                     resultBox.style.display = 'block';
                     resultText.innerText = '请点击图片上的位置';
                     coordText.innerText = '';
                     colorSwatch.style.background = 'transparent';
-                    
+                    currentPoints = [];
                     if (hasTriggeredPay) payBtnContainer.style.display = 'block';
                     else payBtnContainer.style.display = 'none';
                 }
@@ -92,24 +102,16 @@
             }
             reader.readAsDataURL(file);
         });
-
         canvas.addEventListener('click', function(e) {
             if (!img.src) return;
-
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
-            
             const x = Math.floor((e.clientX - rect.left) * scaleX);
             const y = Math.floor((e.clientY - rect.top) * scaleY);
-
             if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
-
             const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const r = pixel[0];
-            const g = pixel[1];
-            const b = pixel[2];
-
+            const r = pixel[0], g = pixel[1], b = pixel[2];
             ctx.drawImage(img, 0, 0);
             ctx.beginPath();
             ctx.arc(x, y, 15, 0, 2 * Math.PI);
@@ -124,28 +126,53 @@
             ctx.strokeStyle = 'red';
             ctx.lineWidth = 2;
             ctx.stroke();
-
             const result = judgeTemperature(r, g, b);
-
             resultText.innerText = result;
             coordText.innerText = `坐标：(${x}, ${y})  |  RGB：(${r}, ${g}, ${b})`;
             colorSwatch.style.background = `rgb(${r},${g},${b})`;
-
+            currentPoints.push({ x: x, y: y, r: r, g: g, b: b });
             clickCount++;
             if (clickCount >= 3) {
                 hasTriggeredPay = true;
                 payBtnContainer.style.display = 'block';
             }
         });
-
-        // ★★★ 核心判断逻辑（彻底修复330-360归属，白灰门槛按你的最新要求调为0.05）★★★
+        function goToAnalyzer() {
+            if (currentPoints.length === 0 || !img.src) {
+                window.location.href = 'analyzer.html';
+                return;
+            }
+            try {
+                const maxSide = 600;
+                let r = 1;
+                if (img.width > maxSide || img.height > maxSide) {
+                    r = maxSide / Math.max(img.width, img.height);
+                }
+                const tmpCanvas = document.createElement('canvas');
+                tmpCanvas.width = Math.round(img.width * r);
+                tmpCanvas.height = Math.round(img.height * r);
+                const tmpCtx = tmpCanvas.getContext('2d');
+                tmpCtx.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
+                const compressedData = tmpCanvas.toDataURL('image/jpeg', 0.7);
+                const scaledPoints = currentPoints.map(p => ({
+                    x: Math.round(p.x * r),
+                    y: Math.round(p.y * r),
+                    r: p.r, g: p.g, b: p.b
+                }));
+                sessionStorage.setItem('freeImage', compressedData);
+                sessionStorage.setItem('freePoints', JSON.stringify(scaledPoints));
+            } catch (err) {
+                alert('图片较大，存储失败，请在分析器里重新上传图片。');
+            }
+            window.location.href = 'analyzer.html';
+        }
         function judgeTemperature(r, g, b) {
             r /= 255; g /= 255; b /= 255;
             const max = Math.max(r, g, b), min = Math.min(r, g, b);
             let h, s, v = max;
             const d = max - min;
             s = max === 0 ? 0 : d / max;
-            if (max === min) { h = 0; } 
+            if (max === min) { h = 0; }
             else {
                 switch (max) {
                     case r: h = (g - b) / d + (g < b ? 6 : 0); break;
@@ -155,52 +182,39 @@
                 h /= 6;
             }
             const hue_deg = h * 360;
-
-            // 1. 黑白灰（白与灰门槛同步为0.05，让你测的冰蓝色存活）
             const temp_tendency = hue_deg < 180 ? "暖调" : "冷调";
             if (v < 0.25) return `${temp_tendency}黑`;
-            if (v > 0.90 && s < 0.05) return `${temp_tendency}白`;
-            if (s < 0.05) return `${temp_tendency}灰`;
-
-            // 2. 粉色（死守315-345度）
-            if (hue_deg >= 315 && hue_deg <= 345) {
-                return `${temp_tendency}粉`;
+            if (v > 0.90 && s < 0.08) return `${temp_tendency}白`;
+            if (s < 0.08) return `${temp_tendency}灰`;
+            if (((hue_deg >= 330 && hue_deg <= 360) || (hue_deg >= 0 && hue_deg <= 60) || (hue_deg > 60 && hue_deg <= 90 && s <= 0.45)) && v < 0.65 && s >= 0.15 && s <= 0.58) {
+                let bTemp = "暖调";
+                if ((hue_deg >= 330 && hue_deg <= 360) || (hue_deg > 60 && hue_deg <= 90)) bTemp = "冷调";
+                return `${bTemp}棕`;
             }
-
-            // 3. 米色（严格锁定 30-90度）
+            if (hue_deg >= 315 && hue_deg <= 345) {
+                let pTemp = (hue_deg < 330) ? "冷调" : "暖调";
+                return `${pTemp}粉`;
+            }
             if (hue_deg >= 30 && hue_deg <= 90 && v > 0.80 && s < 0.25) {
                 let mTemp = (hue_deg < 60) ? "暖调" : "冷调";
                 return `${mTemp}米`;
             }
-
-            // 4. 棕色（330-360 & 0-90度，严格区分冷暖）
-            if (((hue_deg >= 330 && hue_deg <= 360) || (hue_deg >= 0 && hue_deg <= 90)) && v < 0.50 && s >= 0.15 && s <= 0.70) {
-                let bTemp = "暖调";
-                if ((hue_deg >= 330 && hue_deg <= 360) || (hue_deg > 60 && hue_deg <= 90)) {
-                    bTemp = "冷调";
-                }
-                return `${bTemp}棕`;
-            }
-
-            // 5. 其他颜色（严格按原定精准范围，彻底修复330-360归属）
             let color1 = "", color2 = "";
             if (hue_deg < 30) { color1 = "暖调红"; color2 = "暖调橙"; }
             else if (hue_deg < 60) { color1 = "暖调黄"; color2 = "暖调橙"; }
             else if (hue_deg < 90) { color1 = "冷调黄"; color2 = "暖调绿"; }
             else if (hue_deg < 120) { color1 = "暖调绿"; }
-            else if (hue_deg < 150) { color1 = "冷绿"; }
+            else if (hue_deg < 150) { color1 = "冷调绿"; }
             else if (hue_deg < 180) { color1 = "暖调青"; color2 = "冷调绿"; }
             else if (hue_deg < 210) { color1 = "冷调青"; color2 = "暖调蓝"; }
             else if (hue_deg < 240) { color1 = "冷调蓝"; }
             else if (hue_deg < 270) { color1 = "暖调蓝"; color2 = "冷调紫"; }
-            else if (hue_deg < 300) { color1 = "冷紫"; }
+            else if (hue_deg < 300) { color1 = "冷调紫"; }
             else if (hue_deg < 330) { color1 = "暖调紫"; }
-            else { color1 = "冷调红"; color2 = "暖调紫"; } // ★ 修复：330-360正确归位！
-            
+            else { color1 = "冷调红"; color2 = "暖调紫"; }
             let finalResults = [];
             if (color1) finalResults.push(color1);
             if (color2) finalResults.push(color2);
-
             return finalResults.join(" / ");
         }
     </script>
