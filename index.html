@@ -66,107 +66,144 @@
     </div>
     <div class="feedback-line">
         📮 有问题或建议，<a href="https://adcl6hp2.jsjform.com/f/Uy0CQY" target="_blank">点这里告诉我 →</a >
-    </div>    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const fileInput = document.getElementById('file-input');
-        const resultBox = document.getElementById('result-box');
-        const resultText = document.getElementById('result-text');
-        const coordText = document.getElementById('coord-text');
-        const colorSwatch = document.getElementById('color-swatch');
-        const payBtnContainer = document.getElementById('pay-btn-container');
-        let img = new Image();
-        let clickCount = 0;
-        let hasTriggeredPay = false;
-        let currentPoints = [];
-        fileInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                img.onload = function() {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    canvas.style.maxWidth = '100%';
-                    canvas.style.height = 'auto';
-                    ctx.drawImage(img, 0, 0);
-                    resultBox.style.display = 'block';
-                    resultText.innerText = '请点击图片上的位置';
-                    coordText.innerText = '';
-                    colorSwatch.style.background = 'transparent';
-                    currentPoints = [];
-                    if (hasTriggeredPay) payBtnContainer.style.display = 'block';
-                    else payBtnContainer.style.display = 'none';
-                }
-                img.src = event.target.result;
+    </div><script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('file-input');
+    const resultBox = document.getElementById('result-box');
+    const resultText = document.getElementById('result-text');
+    const coordText = document.getElementById('coord-text');
+    const colorSwatch = document.getElementById('color-swatch');
+    const payBtnContainer = document.getElementById('pay-btn-container');
+    let img = new Image();
+    let clickCount = 0;
+    let hasTriggeredPay = false;
+    let currentPoints = [];
+
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.style.maxWidth = '100%';
+                canvas.style.height = 'auto';
+                ctx.drawImage(img, 0, 0);
+                resultBox.style.display = 'block';
+                resultText.innerText = '请点击图片上的位置';
+                coordText.innerText = '';
+                colorSwatch.style.background = 'transparent';
+                currentPoints = [];
+                if (hasTriggeredPay) payBtnContainer.style.display = 'block';
+                else payBtnContainer.style.display = 'none';
             }
-            reader.readAsDataURL(file);
-        });
-        canvas.addEventListener('click', function(e) {
-            if (!img.src) return;
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const x = Math.floor((e.clientX - rect.left) * scaleX);
-            const y = Math.floor((e.clientY - rect.top) * scaleY);
-            if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
-            const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const r = pixel[0], g = pixel[1], b = pixel[2];
-            ctx.drawImage(img, 0, 0);
-            ctx.beginPath();
-            ctx.arc(x, y, 15, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x - 20, y);
-            ctx.lineTo(x + 20, y);
-            ctx.moveTo(x, y - 20);
-            ctx.lineTo(x, y + 20);
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            const result = judgeTemperature(r, g, b);
-            resultText.innerText = result;
-            coordText.innerText = `坐标：(${x}, ${y})  |  RGB：(${r}, ${g}, ${b})`;
-            colorSwatch.style.background = `rgb(${r},${g},${b})`;
-            currentPoints.push({ x: x, y: y, r: r, g: g, b: b });
-            clickCount++;
-            if (clickCount >= 3) {
-                hasTriggeredPay = true;
-                payBtnContainer.style.display = 'block';
-            }
-        });
-        function goToAnalyzer() {
-            if (currentPoints.length === 0 || !img.src) {
-                window.location.href = 'analyzer.html';
-                return;
-            }
-            try {
-                const maxSide = 600;
-                let r = 1;
-                if (img.width > maxSide || img.height > maxSide) {
-                    r = maxSide / Math.max(img.width, img.height);
-                }
-                const tmpCanvas = document.createElement('canvas');
-                tmpCanvas.width = Math.round(img.width * r);
-                tmpCanvas.height = Math.round(img.height * r);
-                const tmpCtx = tmpCanvas.getContext('2d');
-                tmpCtx.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
-                const compressedData = tmpCanvas.toDataURL('image/jpeg', 0.7);
-                const scaledPoints = currentPoints.map(p => ({
-                    x: Math.round(p.x * r),
-                    y: Math.round(p.y * r),
-                    r: p.r, g: p.g, b: p.b
-                }));
-                sessionStorage.setItem('freeImage', compressedData);
-                sessionStorage.setItem('freePoints', JSON.stringify(scaledPoints));
-            } catch (err) {
-                alert('图片较大，存储失败，请在分析器里重新上传图片。');
-            }
-            window.location.href = 'analyzer.html';
+            img.src = event.target.result;
         }
-        function judgeTemperature(r, g, b) {
+        reader.readAsDataURL(file);
+    });
+
+    canvas.addEventListener('click', function(e) {
+        if (!img.src) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = Math.floor((e.clientX - rect.left) * scaleX);
+        const y = Math.floor((e.clientY - rect.top) * scaleY);
+        if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const r = pixel[0], g = pixel[1], b = pixel[2];
+        ctx.drawImage(img, 0, 0);
+        ctx.beginPath();
+        ctx.arc(x, y, 15, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 20, y);
+        ctx.lineTo(x + 20, y);
+        ctx.moveTo(x, y - 20);
+        ctx.lineTo(x, y + 20);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const result = judgeTemperature(r, g, b);
+        resultText.innerText = result;
+        coordText.innerText = `坐标：(${x}, ${y})  |  RGB：(${r}, ${g}, ${b})`;
+        colorSwatch.style.background = `rgb(${r},${g},${b})`;
+        currentPoints.push({ x: x, y: y, r: r, g: g, b: b });
+        clickCount++;
+        if (clickCount >= 3) {
+            hasTriggeredPay = true;
+            payBtnContainer.style.display = 'block';
+        }
+    });
+
+    function goToAnalyzer() {
+        if (currentPoints.length === 0 || !img.src) {
+            window.location.href = 'analyzer.html';
+            return;
+        }
+        try {
+            const maxSide = 600;
+            let r = 1;
+            if (img.width > maxSide || img.height > maxSide) {
+                r = maxSide / Math.max(img.width, img.height);
+            }
+            const tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = Math.round(img.width * r);
+            tmpCanvas.height = Math.round(img.height * r);
+            const tmpCtx = tmpCanvas.getContext('2d');
+            tmpCtx.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
+            const compressedData = tmpCanvas.toDataURL('image/jpeg', 0.7);
+            const scaledPoints = currentPoints.map(p => ({
+                x: Math.round(p.x * r),
+                y: Math.round(p.y * r),
+                r: p.r, g: p.g, b: p.b
+            }));
+            sessionStorage.setItem('freeImage', compressedData);
+            sessionStorage.setItem('freePoints', JSON.stringify(scaledPoints));
+        } catch (err) {
+            alert('图片较大，存储失败，请在分析器里重新上传图片。');
+        }
+        
+        let payCount = Number(localStorage.getItem('payCount') || 0);
+        payCount++;
+        localStorage.setItem('payCount', payCount);
+        
+        let payUrl = 'https://afdian.com/item/95348792cde711f1bcb252540025c377';
+        let priceText = '3.9元（前3次体验价）';
+        if (payCount > 3) {
+            payUrl = 'https://afdian.com/item/3d1928aacde811f1915352540025c377';
+            priceText = '6.9元（原价）';
+        }
+
+        let modalDiv = document.createElement('div');
+        modalDiv.id = 'pay-modal';
+        modalDiv.style.cssText = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;';
+        
+        modalDiv.innerHTML = '<div style="background:white; padding:25px; border-radius:12px; text-align:center; max-width:400px; width:90%; box-shadow:0 10px 30px rgba(0,0,0,0.2);">' +
+            '<h3 style="margin-top:0; color:#333; font-size:20px;">🔒 解锁完整色彩解析</h3>' +
+            '<p style="color:#666; font-size:14px; margin-bottom:15px; line-height:1.5;">本次解锁需 <b style="color:#FF9800;">' + priceText + '</b><br>请前往爱发电付款获取专属解锁码。</p >' +
+            '<button onclick="window.open(\'' + payUrl + '\', \'_blank\')" style="background:#FF9800; color:white; border:none; padding:12px 20px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%; margin-bottom:15px; box-shadow:0 4px 10px rgba(255,152,0,0.3);">去爱发电付款 →</button>' +
+            '<p style="margin-bottom:5px; font-size:14px;">付款后，请输入获取的<span style="color:#E65100; font-weight:bold;">解锁码</span>：</p >' +
+            '<input type="text" id="unlock-code" placeholder="输入您的解锁码" style="width:100%; padding:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:8px; font-size:16px; margin-bottom:10px; text-align:center;">' +
+            '<button onclick="verifyAndGo()" style="background:#4CAF50; color:white; border:none; padding:12px 20px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%;">验证并进入分析器</button>' +
+            '<p style="margin-top:15px; font-size:12px; color:#999; cursor:pointer;" onclick="document.getElementById(\'pay-modal\').remove()">暂不购买，先关掉</p >' +
+            '</div>';
+        
+        document.body.appendChild(modalDiv);
+    }
+
+    function verifyAndGo() {
+        let code = document.getElementById('unlock-code').value.trim();
+        if (code.length >= 6) {
+            window.location.href = 'analyzer.html';
+        } else {
+            alert('请输入正确的解锁码（至少6位）');
+        }
+    }        function judgeTemperature(r, g, b) {
             r /= 255; g /= 255; b /= 255;
             const max = Math.max(r, g, b), min = Math.min(r, g, b);
             let h, s, v = max;
