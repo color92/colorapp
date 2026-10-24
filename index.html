@@ -9,7 +9,6 @@
         h1 { color: #4CAF50; margin-bottom: 5px; }
         p { color: #666; font-size: 14px; text-align: center; }
         .warn-text { color: #d32f2f; font-weight: bold; margin-top: 5px; }
-        .email-text { color: #666; font-size: 12px; margin-top: 15px; }
         #upload-btn { background-color: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         #upload-btn:hover { background-color: #45a049; }
         #file-input { display: none; }
@@ -19,24 +18,12 @@
         #color-swatch { width: 60px; height: 60px; border-radius: 50%; margin: 10px auto; border: 2px solid #333; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         #result-text { font-size: 24px; font-weight: bold; color: #d32f2f; margin: 10px 0; }
         #coord-text { font-size: 14px; color: #888; }
-        #pay-btn-container { margin-top: 25px; display: none; width: 100%; max-width: 500px; }
-        .unlock-bar { display: flex; align-items: center; justify-content: space-between; background: white; border-radius: 12px; padding: 14px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #eee; gap: 12px; }
-        .unlock-info { text-align: left; flex: 1; }
-        .unlock-label { font-size: 13px; color: #888; margin-bottom: 4px; }
-        .unlock-price { display: flex; align-items: baseline; gap: 3px; }
-        .price-num { font-size: 28px; font-weight: bold; color: #FF9800; line-height: 1; }
-        .price-unit { font-size: 14px; color: #FF9800; font-weight: bold; }
-        .price-tag { font-size: 12px; color: #999; margin-left: 4px; }
-        #pay-btn { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 10px rgba(76,175,80,0.3); transition: 0.2s; }
+        #pay-btn-container { margin-top: 25px; display: none; width: 100%; max-width: 500px; text-align: center; }
+        #pay-btn { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; padding: 14px 40px; border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(76,175,80,0.3); transition: 0.2s; }
         #pay-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(76,175,80,0.4); }
         .feedback-line { margin-top: 25px; margin-bottom: 15px; font-size: 13px; color: #888; text-align: center; }
         .feedback-line a { color: #4CAF50; text-decoration: none; font-weight: bold; }
         .feedback-line a:hover { text-decoration: underline; }
-        @media (max-width: 480px) {
-            .unlock-bar { flex-direction: column; align-items: stretch; text-align: center; }
-            .unlock-info { text-align: center; }
-            .unlock-price { justify-content: center; }
-        }
     </style>
 </head>
 <body>
@@ -51,18 +38,22 @@
         <div id="result-text">等待点击...</div>
         <div id="coord-text"></div>
     </div>
-    <div id="pay-btn-container">
-        <div class="unlock-bar">
-            <div class="unlock-info">
-                <div class="unlock-label">解锁完整色彩解析</div>
-                <div class="unlock-price">
-                    <span class="price-num">3.9</span>
-                    <span class="price-unit">元</span>
-                    <span class="price-tag">前 3 次体验价</span>
-                </div>
-            </div>
-            <button id="pay-btn" onclick="goToAnalyzer()">立即查看报告 →</button>
+    
+    <div id="pay-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+        <div style="background:white; padding:25px; border-radius:12px; text-align:center; max-width:400px; width:90%; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+            <h3 style="margin-top:0; color:#333; font-size:20px;">🔒 解锁完整色彩解析</h3>
+            <p style="color:#666; font-size:14px; margin-bottom:15px; line-height:1.5;">本次解锁需 <b style="color:#FF9800; font-size:18px;" id="modal-price-text"></b></p >
+            <button id="modal-pay-btn" style="background:#FF9800; color:white; border:none; padding:12px 20px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%; margin-bottom:15px; box-shadow:0 4px 10px rgba(255,152,0,0.3);">去爱发电付款 →</button>
+            <p style="font-size:13px; color:#d32f2f; font-weight:bold; margin-bottom:10px;">👇 付款完成后，请关闭爱发电页面回到这里 👇</p >
+            <p style="margin-bottom:5px; font-size:14px;">请输入<span style="color:#E65100; font-weight:bold;">【订单编号】</span>：</p >
+            <input type="text" id="unlock-code" placeholder="请输入订单编号" style="width:100%; padding:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:8px; font-size:16px; margin-bottom:10px; text-align:center;">
+            <button onclick="verifyAndGo()" style="background:#4CAF50; color:white; border:none; padding:12px 20px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%;">验证并进入分析器</button>
+            <p style="margin-top:15px; font-size:12px; color:#999; cursor:pointer;" onclick="document.getElementById('pay-modal').style.display='none'">暂不购买，先关掉</p >
         </div>
+    </div>
+
+    <div id="pay-btn-container">
+        <button id="pay-btn" onclick="goToAnalyzer()">解锁完整色彩解析</button>
     </div>
     <div class="feedback-line">
         📮 有问题或建议，<a href="https://adcl6hp2.jsjform.com/f/Uy0CQY" target="_blank">点这里告诉我 →</a >
@@ -146,33 +137,19 @@ function goToAnalyzer() {
     }
     
     let payCount = Number(localStorage.getItem('payCount') || 0);
-    
-    let payUrl = 'https://afdian.com/item/95348792cde711f1bcb252540025c377'; // 3.9元链接
+    let payUrl = 'https://afdian.com/item/95348792cde711f1bcb252540025c377';
     let priceText = '3.9元（前3次体验价）';
     if (payCount >= 3) {
-        payUrl = 'https://afdian.com/item/3d1928aacde811f1915352540025c377'; // 6.9元链接
+        payUrl = 'https://afdian.com/item/3d1928aacde811f1915352540025c377';
         priceText = '6.9元（原价）';
     }
 
-    let modalDiv = document.createElement('div');
-    modalDiv.id = 'pay-modal';
-    modalDiv.style.cssText = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;';
-    
-    modalDiv.innerHTML = '<div style="background:white; padding:25px; border-radius:12px; text-align:center; max-width:400px; width:90%; box-shadow:0 10px 30px rgba(0,0,0,0.2);">' +
-        '<h3 style="margin-top:0; color:#333; font-size:20px;">🔒 解锁完整色彩解析</h3>' +
-        '<p style="color:#666; font-size:14px; margin-bottom:15px; line-height:1.5;">本次解锁需 <b style="color:#FF9800;">' + priceText + '</b></p >' +
-        '<button onclick="window.open(\'' + payUrl + '\', \'_blank\')" style="background:#FF9800; color:white; border:none; padding:12px 20px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%; margin-bottom:15px; box-shadow:0 4px 10px rgba(255,152,0,0.3);">去爱发电付款 →</button>' +
-        '<p style="font-size:13px; color:#d32f2f; font-weight:bold; margin-bottom:10px;">👇 付款完成后，请关闭爱发电页面回到这里 👇</p >' +
-        '<p style="margin-bottom:5px; font-size:14px;">请输入<span style="color:#E65100; font-weight:bold;">【订单编号】</span>：</p >' +
-        '<input type="text" id="unlock-code" placeholder="请输入订单编号" style="width:100%; padding:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:8px; font-size:16px; margin-bottom:10px; text-align:center;">' +
-        '<button onclick="verifyAndGo()" style="background:#4CAF50; color:white; border:none; padding:12px 20px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%;">验证并进入分析器</button>' +
-        '<p style="margin-top:15px; font-size:12px; color:#999; cursor:pointer;" onclick="document.getElementById(\'pay-modal\').remove()">暂不购买，先关掉</p >' +
-        '</div>';
-    
-    document.body.appendChild(modalDiv);
-}
-
-function verifyAndGo() {
+    document.getElementById('modal-price-text').innerText = priceText;
+    document.getElementById('modal-pay-btn').onclick = function() {
+        window.open(payUrl, '_blank');
+    };
+    document.getElementById('pay-modal').style.display = 'flex';
+}function verifyAndGo() {
     let code = document.getElementById('unlock-code').value.trim();
     if (code.length >= 27) {
         let payCount = Number(localStorage.getItem('payCount') || 0);
@@ -203,57 +180,59 @@ function verifyAndGo() {
     } else {
         alert('请输入订单编号');
     }
-}    function judgeTemperature(r, g, b) {
-        r /= 255; g /= 255; b /= 255;
-        const max = Math.max(r, g, b), min = Math.min(r, g, b);
-        let h, s, v = max;
-        const d = max - min;
-        s = max === 0 ? 0 : d / max;
-        if (max === min) { h = 0; }
-        else {
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-            }
-            h /= 6;
+}
+
+function judgeTemperature(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, v = max;
+    const d = max - min;
+    s = max === 0 ? 0 : d / max;
+    if (max === min) { h = 0; }
+    else {
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
         }
-        const hue_deg = h * 360;
-        const temp_tendency = hue_deg < 180 ? "暖调" : "冷调";
-        if (v < 0.25) return `${temp_tendency}黑`;
-        if (v > 0.90 && s < 0.08) return `${temp_tendency}白`;
-        if (s < 0.08) return `${temp_tendency}灰`;
-        if (((hue_deg >= 330 && hue_deg <= 360) || (hue_deg >= 0 && hue_deg <= 60) || (hue_deg > 60 && hue_deg <= 90 && s <= 0.45)) && v < 0.65 && s >= 0.15 && s <= 0.58) {
-            let bTemp = "暖调";
-            if ((hue_deg >= 330 && hue_deg <= 360) || (hue_deg > 60 && hue_deg <= 90)) bTemp = "冷调";
-            return `${bTemp}棕`;
-        }
-        if (hue_deg >= 315 && hue_deg <= 345) {
-            let pTemp = (hue_deg < 330) ? "冷调" : "暖调";
-            return `${pTemp}粉`;
-        }
-        if (hue_deg >= 30 && hue_deg <= 90 && v > 0.80 && s < 0.25) {
-            let mTemp = (hue_deg < 60) ? "暖调" : "冷调";
-            return `${mTemp}米`;
-        }
-        let color1 = "", color2 = "";
-        if (hue_deg < 30) { color1 = "暖调红"; color2 = "暖调橙"; }
-        else if (hue_deg < 60) { color1 = "暖调黄"; color2 = "暖调橙"; }
-        else if (hue_deg < 90) { color1 = "冷调黄"; color2 = "暖调绿"; }
-        else if (hue_deg < 120) { color1 = "暖调绿"; }
-        else if (hue_deg < 150) { color1 = "冷调绿"; }
-        else if (hue_deg < 180) { color1 = "暖调青"; color2 = "冷调绿"; }
-        else if (hue_deg < 210) { color1 = "冷调青"; color2 = "暖调蓝"; }
-        else if (hue_deg < 240) { color1 = "冷调蓝"; }
-        else if (hue_deg < 270) { color1 = "暖调蓝"; color2 = "冷调紫"; }
-        else if (hue_deg < 300) { color1 = "冷调紫"; }
-        else if (hue_deg < 330) { color1 = "暖调紫"; }
-        else { color1 = "冷调红"; color2 = "暖调紫"; }
-        let finalResults = [];
-        if (color1) finalResults.push(color1);
-        if (color2) finalResults.push(color2);
-        return finalResults.join(" / ");
+        h /= 6;
     }
-    </script>
+    const hue_deg = h * 360;
+    const temp_tendency = hue_deg < 180 ? "暖调" : "冷调";
+    if (v < 0.25) return `${temp_tendency}黑`;
+    if (v > 0.90 && s < 0.08) return `${temp_tendency}白`;
+    if (s < 0.08) return `${temp_tendency}灰`;
+    if (((hue_deg >= 330 && hue_deg <= 360) || (hue_deg >= 0 && hue_deg <= 60) || (hue_deg > 60 && hue_deg <= 90 && s <= 0.45)) && v < 0.65 && s >= 0.15 && s <= 0.58) {
+        let bTemp = "暖调";
+        if ((hue_deg >= 330 && hue_deg <= 360) || (hue_deg > 60 && hue_deg <= 90)) bTemp = "冷调";
+        return `${bTemp}棕`;
+    }
+    if (hue_deg >= 315 && hue_deg <= 345) {
+        let pTemp = (hue_deg < 330) ? "冷调" : "暖调";
+        return `${pTemp}粉`;
+    }
+    if (hue_deg >= 30 && hue_deg <= 90 && v > 0.80 && s < 0.25) {
+        let mTemp = (hue_deg < 60) ? "暖调" : "冷调";
+        return `${mTemp}米`;
+    }
+    let color1 = "", color2 = "";
+    if (hue_deg < 30) { color1 = "暖调红"; color2 = "暖调橙"; }
+    else if (hue_deg < 60) { color1 = "暖调黄"; color2 = "暖调橙"; }
+    else if (hue_deg < 90) { color1 = "冷调黄"; color2 = "暖调绿"; }
+    else if (hue_deg < 120) { color1 = "暖调绿"; }
+    else if (hue_deg < 150) { color1 = "冷调绿"; }
+    else if (hue_deg < 180) { color1 = "暖调青"; color2 = "冷调绿"; }
+    else if (hue_deg < 210) { color1 = "冷调青"; color2 = "暖调蓝"; }
+    else if (hue_deg < 240) { color1 = "冷调蓝"; }
+    else if (hue_deg < 270) { color1 = "暖调蓝"; color2 = "冷调紫"; }
+    else if (hue_deg < 300) { color1 = "冷调紫"; }
+    else if (hue_deg < 330) { color1 = "暖调紫"; }
+    else { color1 = "冷调红"; color2 = "暖调紫"; }
+    let finalResults = [];
+    if (color1) finalResults.push(color1);
+    if (color2) finalResults.push(color2);
+    return finalResults.join(" / ");
+}
+</script>
 </body>
 </html>
