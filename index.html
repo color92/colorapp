@@ -128,9 +128,7 @@ canvas.addEventListener('click', function(e) {
         hasTriggeredPay = true;
         payBtnContainer.style.display = 'block';
     }
-});
-
-function goToAnalyzer() {
+});function goToAnalyzer() {
     if (currentPoints.length === 0 || !img.src) {
         window.location.href = 'analyzer.html';
         return;
@@ -148,6 +146,9 @@ function goToAnalyzer() {
     document.getElementById('modal-pay-btn').onclick = function() {
         window.open(payUrl, '_blank');
     };
+    
+    document.getElementById('unlock-code').value = '';
+    
     document.getElementById('pay-modal').style.display = 'flex';
 }function verifyAndGo() {
     let code = document.getElementById('unlock-code').value.trim();
